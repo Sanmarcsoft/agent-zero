@@ -4,12 +4,108 @@
   </head>
 
   <body>
+    <script type="module">
+      import { createStore } from "/js/AlpineStore.js";
+
+      const model = {
+        // TTS server state
+        ttsVoices: [],
+        ttsLoading: false,
+        ttsError: null,
+        ttsHealth: null,
+        testPlaying: false,
+        testText: "Hello, I am ready to assist you. How are you feeling today?",
+
+        async fetchVoices() {
+          this.ttsLoading = true;
+          this.ttsError = null;
+          try {
+            const url = this._getTtsUrl();
+            const resp = await fetch(`${url}/v1/voices`);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const data = await resp.json();
+            this.ttsVoices = data.voices || [];
+          } catch (e) {
+            this.ttsError = e.message;
+            this.ttsVoices = [];
+          } finally {
+            this.ttsLoading = false;
+          }
+        },
+
+        async fetchHealth() {
+          try {
+            const url = this._getTtsUrl();
+            const resp = await fetch(`${url}/health`);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            this.ttsHealth = await resp.json();
+          } catch (e) {
+            this.ttsHealth = { status: "unreachable", error: e.message };
+          }
+        },
+
+        async reloadServerVoices() {
+          try {
+            const url = this._getTtsUrl();
+            await fetch(`${url}/v1/voices/reload`, { method: "POST" });
+            await this.fetchVoices();
+          } catch (e) {
+            this.ttsError = "Reload failed: " + e.message;
+          }
+        },
+
+        async testVoice() {
+          const settings = Alpine.store("settings")?.settings;
+          const voice = settings?.tts_percy_voice || "percy";
+          if (this.testPlaying) return;
+          this.testPlaying = true;
+          try {
+            const url = this._getTtsUrl();
+            const text = this.testText || "Hello.";
+            const resp = await fetch(`${url}/v1/audio/speech`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ input: text, voice: voice, response_format: "mp3" }),
+            });
+            if (!resp.ok) throw new Error(`TTS returned HTTP ${resp.status}: ${await resp.text()}`);
+            const blob = await resp.blob();
+            const audio = new Audio(URL.createObjectURL(blob));
+            audio.onended = () => { this.testPlaying = false; };
+            audio.onerror = () => { this.testPlaying = false; };
+            await audio.play();
+          } catch (e) {
+            this.testPlaying = false;
+            alert("Voice test failed: " + e.message);
+          }
+        },
+
+        async connectAndLoad() {
+          await Promise.all([this.fetchVoices(), this.fetchHealth()]);
+        },
+
+        _getTtsUrl() {
+          const settings = Alpine.store("settings")?.settings;
+          return (settings?.tts_percy_url || "http://10.0.0.96:8880").replace(/\/+$/, "");
+        },
+      };
+
+      createStore("speechConfig", model);
+    </script>
+
     <div x-data>
       <template x-if="$store.settings.settings">
         <div>
           <div class="section-title">Speech</div>
           <div class="section-description">
-            Voice transcription and speech synthesis settings.
+            Voice transcription (STT) and text-to-speech (TTS) settings.
+          </div>
+
+          <!-- ============================================================ -->
+          <!-- SPEECH-TO-TEXT -->
+          <!-- ============================================================ -->
+
+          <div style="margin:16px 0 8px; font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; opacity:0.6;">
+            Speech-to-Text (STT)
           </div>
 
           <div class="field field-full">
@@ -77,20 +173,191 @@
             </div>
           </div>
 
+          <!-- ============================================================ -->
+          <!-- TEXT-TO-SPEECH -->
+          <!-- ============================================================ -->
+
+          <div style="margin:24px 0 8px; font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; opacity:0.6; border-top:1px solid var(--border-color, #333); padding-top:16px;">
+            Text-to-Speech (TTS)
+          </div>
+
+          <!-- TTS Engine Selection -->
           <div class="field">
             <div class="field-label">
-              <div class="field-title">Enable Kokoro TTS</div>
-              <div class="field-description">
-                Enable higher quality server-side AI (Kokoro) instead of browser-based text-to-speech.
-              </div>
+              <div class="field-title">TTS Engine</div>
+              <div class="field-description">Choose between local Kokoro TTS, external Percy TTS server, or browser-based speech.</div>
             </div>
             <div class="field-control">
-              <label class="toggle">
-                <input type="checkbox" x-model="$store.settings.settings.tts_kokoro" />
-                <span class="toggler"></span>
-              </label>
+              <select x-model="$store.settings.settings.tts_engine"
+                      x-init="if (!$store.settings.settings.tts_engine) $store.settings.settings.tts_engine = $store.settings.settings.tts_kokoro ? 'kokoro' : 'browser'">
+                <option value="browser">Browser (built-in, basic quality)</option>
+                <option value="kokoro">Kokoro (local AI, good quality)</option>
+                <option value="percy">Percy TTS Server (external, high quality voice clones)</option>
+              </select>
             </div>
           </div>
+
+          <!-- Kokoro toggle (legacy compat) - hidden, synced from engine dropdown -->
+          <input type="hidden" x-bind:value="$store.settings.settings.tts_kokoro = ($store.settings.settings.tts_engine === 'kokoro')" />
+
+          <!-- Percy TTS Server Settings (shown when percy engine selected) -->
+          <template x-if="$store.settings.settings.tts_engine === 'percy'">
+            <div x-init="$store.speechConfig.connectAndLoad()">
+
+              <!-- Server URL -->
+              <div class="field">
+                <div class="field-label">
+                  <div class="field-title">Percy TTS Server URL</div>
+                  <div class="field-description">
+                    The Qwen3-TTS server running on ai.matthewstevens.org (10.0.0.96:8880).
+                  </div>
+                </div>
+                <div class="field-control">
+                  <div style="display:flex; gap:8px;">
+                    <input type="text"
+                           x-model="$store.settings.settings.tts_percy_url"
+                           placeholder="http://10.0.0.96:8880"
+                           x-init="if (!$store.settings.settings.tts_percy_url) $store.settings.settings.tts_percy_url = 'http://10.0.0.96:8880'" />
+                    <button class="btn btn-sm btn-secondary"
+                            @click="$store.speechConfig.connectAndLoad()"
+                            :disabled="$store.speechConfig.ttsLoading"
+                            title="Test connection and reload voices">
+                      <span class="material-symbols-outlined" style="font-size:16px;"
+                            :class="{'spinning': $store.speechConfig.ttsLoading}">sync</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Server Status -->
+              <div class="field field-full">
+                <div class="field-label">
+                  <div class="field-title">Server Status</div>
+                </div>
+                <div class="field-control">
+                  <div style="font-size:12px; line-height:1.8; padding:8px 12px; border-radius:6px; background:var(--bg-secondary, #1a1a2e);">
+                    <template x-if="$store.speechConfig.ttsHealth">
+                      <div>
+                        <div>
+                          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px;"
+                                :style="$store.speechConfig.ttsHealth.status === 'ok' ? 'background:#22c55e' : 'background:#ef4444'"></span>
+                          <strong x-text="$store.speechConfig.ttsHealth.status === 'ok' ? 'Connected' : 'Error'"></strong>
+                          <template x-if="$store.speechConfig.ttsHealth.error">
+                            <span style="color:var(--error-color, #ef4444);" x-text="' - ' + $store.speechConfig.ttsHealth.error"></span>
+                          </template>
+                        </div>
+                        <template x-if="$store.speechConfig.ttsHealth.status === 'ok'">
+                          <div style="margin-top:4px; opacity:0.7;">
+                            <span>Model: <strong x-text="$store.speechConfig.ttsHealth.model || 'unknown'"></strong></span>
+                            <span style="margin-left:12px;">Voices: <strong x-text="($store.speechConfig.ttsHealth.voices || []).join(', ')"></strong></span>
+                            <span style="margin-left:12px;">Formats: <strong x-text="($store.speechConfig.ttsHealth.supported_formats || []).join(', ')"></strong></span>
+                          </div>
+                        </template>
+                      </div>
+                    </template>
+                    <template x-if="!$store.speechConfig.ttsHealth">
+                      <div style="opacity:0.5;">Not connected. Click sync to test connection.</div>
+                    </template>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Voice Selection -->
+              <div class="field">
+                <div class="field-label">
+                  <div class="field-title">Voice</div>
+                  <div class="field-description">
+                    Select a voice clone profile. Add new voices by placing {name}_ref.wav + {name}_ref.txt on the TTS server.
+                    <template x-if="$store.speechConfig.ttsError">
+                      <span style="color:var(--error-color, #ef4444); display:block; margin-top:4px;"
+                            x-text="$store.speechConfig.ttsError"></span>
+                    </template>
+                  </div>
+                </div>
+                <div class="field-control">
+                  <div style="display:flex; gap:8px; align-items:center;">
+                    <select x-model="$store.settings.settings.tts_percy_voice"
+                            :disabled="$store.speechConfig.ttsLoading"
+                            x-init="if (!$store.settings.settings.tts_percy_voice) $store.settings.settings.tts_percy_voice = 'percy'">
+                      <template x-for="voice in $store.speechConfig.ttsVoices" :key="voice.id">
+                        <option :value="voice.id"
+                                :selected="voice.id === $store.settings.settings.tts_percy_voice"
+                                x-text="voice.name + ' (' + voice.id + ')'"></option>
+                      </template>
+                    </select>
+                    <button class="btn btn-sm btn-secondary"
+                            @click="$store.speechConfig.reloadServerVoices()"
+                            :disabled="$store.speechConfig.ttsLoading"
+                            title="Rescan server for new voice files">
+                      <span class="material-symbols-outlined" style="font-size:16px;">refresh</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Selected Voice Details -->
+              <template x-for="voice in $store.speechConfig.ttsVoices.filter(v => v.id === $store.settings.settings.tts_percy_voice)" :key="voice.id">
+                <div class="field field-full">
+                  <div class="field-label">
+                    <div class="field-title">Voice Details</div>
+                  </div>
+                  <div class="field-control">
+                    <div style="font-size:12px; opacity:0.7; line-height:1.8; padding:8px 12px; border-radius:6px; background:var(--bg-secondary, #1a1a2e);">
+                      <div><strong>ID:</strong> <span x-text="voice.id"></span></div>
+                      <div><strong>Model:</strong> <span x-text="voice.model"></span></div>
+                      <div><strong>Sample Rate:</strong> <span x-text="voice.sample_rate + ' Hz'"></span></div>
+                      <div><strong>Reference Audio:</strong> <span x-text="voice.ref_audio"></span></div>
+                      <div><strong>Reference Text:</strong> <span x-text="voice.ref_text_preview" style="font-style:italic;"></span></div>
+                      <div><strong>Embedding Cached:</strong>
+                        <span :style="voice.embedding_cached ? 'color:#22c55e' : 'color:#f59e0b'"
+                              x-text="voice.embedding_cached ? 'Yes' : 'No (will cache on first synthesis)'"></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+
+              <!-- Voice Test -->
+              <div class="field field-full">
+                <div class="field-label">
+                  <div class="field-title">Test Voice</div>
+                  <div class="field-description">Type custom text and play it with the selected voice.</div>
+                </div>
+                <div class="field-control">
+                  <div style="display:flex; flex-direction:column; gap:8px;">
+                    <input type="text" x-model="$store.speechConfig.testText"
+                           placeholder="Type something to test..." />
+                    <div style="display:flex; gap:8px;">
+                      <button class="btn btn-sm"
+                              @click="$store.speechConfig.testVoice()"
+                              :disabled="$store.speechConfig.testPlaying || !$store.settings.settings.tts_percy_voice">
+                        <span class="material-symbols-outlined" style="font-size:16px; vertical-align:middle; margin-right:4px;"
+                              x-text="$store.speechConfig.testPlaying ? 'volume_up' : 'play_arrow'"></span>
+                        <span x-text="$store.speechConfig.testPlaying ? 'Playing...' : 'Test Voice'"></span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Output Format -->
+              <div class="field">
+                <div class="field-label">
+                  <div class="field-title">Output Format</div>
+                  <div class="field-description">Audio format for TTS output. MP3 for playback, WAV for avatar lip-sync analysis.</div>
+                </div>
+                <div class="field-control">
+                  <select x-model="$store.settings.settings.tts_percy_format"
+                          x-init="if (!$store.settings.settings.tts_percy_format) $store.settings.settings.tts_percy_format = 'mp3'">
+                    <option value="mp3">MP3 (smaller, browser playback)</option>
+                    <option value="wav">WAV (larger, PCM for viseme analysis)</option>
+                  </select>
+                </div>
+              </div>
+
+            </div>
+          </template>
+
         </div>
       </template>
     </div>
