@@ -197,8 +197,9 @@
             </div>
           </div>
 
-          <!-- Kokoro toggle (legacy compat) - hidden, synced from engine dropdown -->
-          <input type="hidden" x-bind:value="$store.settings.settings.tts_kokoro = ($store.settings.settings.tts_engine === 'kokoro')" />
+          <!-- Kokoro toggle (legacy compat) - keep kokoro enabled for both kokoro AND percy engines
+               since percy uses the same server-side synthesis pipeline. Only browser mode disables it. -->
+          <input type="hidden" x-bind:value="$store.settings.settings.tts_kokoro = ($store.settings.settings.tts_engine !== 'browser')" />
 
           <!-- Percy TTS Server Settings (shown when percy engine selected) -->
           <template x-if="$store.settings.settings.tts_engine === 'percy'">

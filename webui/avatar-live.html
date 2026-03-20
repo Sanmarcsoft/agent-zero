@@ -91,7 +91,7 @@ button.sc{background:var(--bg3);border:1px solid var(--border)}button.sc:hover{b
 
 <div class="s"><h3>WebSocket</h3>
 <div class="ws-info">
-Endpoint: <code id="wsUrl">ws://localhost/ws/avatar</code><br>
+Endpoint: <code id="wsUrl">/avatar (Socket.IO)</code><br>
 Status: <span id="wsConnState">Disconnected</span> | Msgs: <span id="wsMsgCount">0</span><br>
 Last: <span id="wsLastMsg">--</span>
 </div>
@@ -100,7 +100,7 @@ Last: <span id="wsLastMsg">--</span>
 <button class="sc" onclick="wsDisconnect()">Disconnect</button>
 </div>
 <div class="f" style="margin-top:6px"><label>Custom WS URL (optional)</label>
-<input type="text" id="wsUrlCustom" placeholder="ws://localhost:8080/ws/avatar">
+<input type="text" id="wsUrlCustom" placeholder="/avatar">
 </div>
 <div id="wsPreview" class="ws-msg-preview" style="display:none"></div>
 </div>
@@ -164,6 +164,7 @@ Drop avatar head image or click to browse
 // ── MediaPipe Face Landmarker ──────────────────────────────────────────
 import {FaceLandmarker, FilesetResolver, DrawingUtils} from
   "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/vision_bundle.mjs";
+import { io } from "/vendor/socket.io.esm.min.js";
 
 const $=s=>document.getElementById(s),$rv=(id,v)=>$(id).textContent=v;
 const lg=$('lg');
@@ -376,16 +377,14 @@ function lerp(a,b,t){return a+(b-a)*t;}
 
 let ws=null;
 let wsReconnectTimer=null;
-let wsReconnectDelay=1000; // start at 1s, exponential backoff
+let wsReconnectDelay=1000;
 const WS_MAX_RECONNECT_DELAY=30000;
 let wsManualDisconnect=false;
 
 function getWsUrl(){
     const custom=$('wsUrlCustom').value.trim();
     if(custom)return custom;
-    const port=location.port||'80';
-    const protocol=location.protocol==='https:'?'wss:':'ws:';
-    return `${protocol}//${location.hostname}:${port}/ws/avatar`;
+    return '/avatar'; // Socket.IO namespace
 }
 
 function updateWsUI(state,detail){
@@ -423,18 +422,26 @@ function updateWsTimestamp(){
 }
 
 function wsConnect(){
-    if(ws&&(ws.readyState===WebSocket.OPEN||ws.readyState===WebSocket.CONNECTING)){
-        log('WS: Already connected or connecting');
+    if(ws&&ws.connected){
+        log('WS: Already connected');
         return;
     }
     wsManualDisconnect=false;
     wsReconnectDelay=1000;
-    const url=getWsUrl();
-    log('WS: Connecting to '+url);
+    const ns=getWsUrl();
+    log('WS: Connecting to Socket.IO namespace '+ns);
     updateWsUI('reconnecting','connecting');
 
     try{
-        ws=new WebSocket(url);
+        if(ws){ws.disconnect();ws=null;}
+        ws=io(ns,{
+            autoConnect:false,
+            reconnection:true,
+            reconnectionDelay:1000,
+            reconnectionDelayMax:WS_MAX_RECONNECT_DELAY,
+            transports:['websocket','polling'],
+            withCredentials:true,
+        });
     }catch(e){
         log('WS: Connection error: '+e.message);
         updateWsUI('disconnected');
@@ -442,53 +449,74 @@ function wsConnect(){
         return;
     }
 
-    ws.onopen=()=>{
-        log('WS: Connected');
+    ws.on('connect',()=>{
+        log('WS: Connected (sid='+ws.id+')');
         wsReconnectDelay=1000;
         updateWsUI('connected');
         updateWsTimestamp();
-        // Auto-start renderer if image is loaded
         if(S.img&&!S.run)start();
-    };
+    });
 
-    ws.onmessage=(evt)=>{
-        S.wsMsgCount++;
-        $('wsMsgCount').textContent=S.wsMsgCount;
+    // Listen for avatar events from the handler
+    ws.on('avatar_animate_result',(envelope)=>{
+        S.wsMsgCount++;$('wsMsgCount').textContent=S.wsMsgCount;
         updateWsTimestamp();
+        const msg=envelope?.data||envelope;
+        handleWsMessage(msg);
+        updatePreview(msg);
+    });
 
-        try{
-            const msg=JSON.parse(evt.data);
-            handleWsMessage(msg);
-            // Update preview (truncated)
-            const preview=$('wsPreview');
-            preview.style.display='block';
-            const previewText=JSON.stringify(msg,null,1);
-            preview.textContent=previewText.length>300?previewText.slice(0,300)+'...':previewText;
-        }catch(e){
-            log('WS: Parse error: '+e.message);
-        }
-    };
+    ws.on('avatar_prepare_result',(envelope)=>{
+        S.wsMsgCount++;$('wsMsgCount').textContent=S.wsMsgCount;
+        updateWsTimestamp();
+        const msg=envelope?.data||envelope;
+        if(msg.face_model)handleFaceModelMsg(msg.face_model);
+        updatePreview(msg);
+    });
 
-    ws.onerror=(e)=>{
-        log('WS: Error');
-    };
+    ws.on('avatar_emotion_update',(envelope)=>{
+        S.wsMsgCount++;$('wsMsgCount').textContent=S.wsMsgCount;
+        updateWsTimestamp();
+        const msg=envelope?.data||envelope;
+        handleEmotionMsg(msg);
+        updatePreview(msg);
+    });
 
-    ws.onclose=(evt)=>{
-        log('WS: Closed (code '+evt.code+')');
+    ws.on('disconnect',(reason)=>{
+        log('WS: Disconnected ('+reason+')');
         updateWsUI('disconnected');
-        ws=null;
-        if(!wsManualDisconnect){
-            scheduleReconnect();
+        if(!wsManualDisconnect&&reason!=='io client disconnect'){
+            updateWsUI('reconnecting','auto');
         }
-    };
+    });
+
+    ws.on('connect_error',(e)=>{
+        log('WS: Connect error: '+(e.message||e));
+        updateWsUI('reconnecting','error');
+    });
+
+    ws.connect();
 }
 window.wsConnect=wsConnect;
+
+function updatePreview(msg){
+    const preview=$('wsPreview');
+    preview.style.display='block';
+    const keys=Object.keys(msg||{});
+    const summary=keys.map(k=>{
+        const v=msg[k];
+        if(typeof v==='string'&&v.length>50)return k+': "'+v.slice(0,50)+'..."';
+        if(Array.isArray(v))return k+': ['+v.length+' items]';
+        return k+': '+JSON.stringify(v);
+    }).join('\n');
+    preview.textContent=summary.length>400?summary.slice(0,400)+'...':summary;
+}
 
 function wsDisconnect(){
     wsManualDisconnect=true;
     if(wsReconnectTimer){clearTimeout(wsReconnectTimer);wsReconnectTimer=null;}
     if(ws){
-        ws.close(1000,'User disconnect');
+        ws.disconnect();
         ws=null;
     }
     updateWsUI('disconnected');
@@ -537,8 +565,8 @@ function handleWsMessage(msg){
             break;
         case 'ping':
             // keep-alive, just acknowledge
-            if(ws&&ws.readyState===WebSocket.OPEN){
-                ws.send(JSON.stringify({type:'pong',timestamp:Date.now()}));
+            if(ws&&ws.connected){
+                ws.emit('pong',{timestamp:Date.now()});
             }
             break;
         default:
