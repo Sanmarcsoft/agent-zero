@@ -1,11 +1,10 @@
 # avatar_bridge.py — orchestrates the avatar animation pipeline
 #
-# Pipeline: text → Percy TTS (Qwen3-TTS) → viseme extraction → WebSocket broadcast
+# Pipeline: text → SanMarcSoft TTS (Qwen3-TTS) → viseme extraction → WebSocket broadcast
 # Scaleway LivePortrait: face preparation from reference photo
 #
 # Environment variables:
-#   PERCY_TTS_URL      — Qwen3-TTS endpoint (default http://ai.matthewstevens.org:8880/v1)
-#   PERCY_TTS_KEY      — API key for Percy TTS (default prime-mouth)
+#   TTS_URL            — TTS endpoint (default http://10.0.0.96:8880/v1)
 #   LIVEPORTRAIT_URL   — Scaleway LivePortrait endpoint (default http://localhost:8090)
 
 from __future__ import annotations
@@ -26,10 +25,9 @@ from python.helpers.print_style import PrintStyle
 
 # ── configuration ────────────────────────────────────────────────────────────
 
-PERCY_TTS_URL = os.environ.get("TTS_URL", "http://10.0.0.96:8880/v1")
-PERCY_TTS_KEY = os.environ.get("PERCY_TTS_KEY", "prime-mouth")
+TTS_URL = os.environ.get("TTS_URL", "http://10.0.0.96:8880/v1")
 
-# Percy TTS returns MP3 (audio/mpeg). We need PCM for viseme analysis.
+# TTS server returns MP3 (audio/mpeg). We need PCM for viseme analysis.
 # Use subprocess to convert MP3→WAV via ffmpeg if available, else use
 # the MP3 directly for playback and fall back to amplitude-from-mp3.
 _HAS_FFMPEG: bool | None = None
@@ -60,25 +58,23 @@ EMOTION_TYPES = [
 class AvatarBridge:
     """Orchestrates the full avatar animation pipeline.
 
-    Coordinates Percy TTS synthesis, viseme extraction from audio,
+    Coordinates TTS synthesis, viseme extraction from audio,
     LivePortrait face preparation, and packages everything for
     WebSocket delivery to the avatar renderer.
     """
 
     def __init__(
         self,
-        percy_url: str | None = None,
-        percy_key: str | None = None,
+        tts_url: str | None = None,
         liveportrait_url: str | None = None,
     ) -> None:
-        self.percy_url = percy_url or PERCY_TTS_URL
-        self.percy_key = percy_key or PERCY_TTS_KEY
+        self.tts_url = tts_url or TTS_URL
         self.liveportrait_url = liveportrait_url or LIVEPORTRAIT_URL
 
     # ── TTS synthesis ────────────────────────────────────────────────────
 
-    async def synthesize_percy(self, text: str) -> tuple[bytes, bytes]:
-        """Call Qwen3-TTS with the Percy voice.
+    async def synthesize_tts(self, text: str) -> tuple[bytes, bytes]:
+        """Call Qwen3-TTS for speech synthesis.
 
         Makes two requests (in parallel when possible):
           1. MP3 for browser playback (smaller, fast)
@@ -90,7 +86,7 @@ class AvatarBridge:
         if not text or not text.strip():
             raise ValueError("Cannot synthesize empty text")
 
-        url = f"{self.percy_url.rstrip('/')}/audio/speech"
+        url = f"{self.tts_url.rstrip('/')}/audio/speech"
         headers = {"Content-Type": "application/json"}
         clean_text = text.strip()
 
@@ -108,9 +104,9 @@ class AvatarBridge:
 
         # Handle MP3 response
         if isinstance(mp3_resp, Exception):
-            raise RuntimeError(f"Percy TTS MP3 request failed: {mp3_resp}")
+            raise RuntimeError(f"TTS MP3 request failed: {mp3_resp}")
         if mp3_resp.status_code != 200:
-            raise RuntimeError(f"Percy TTS failed ({mp3_resp.status_code}): {mp3_resp.text[:500]}")
+            raise RuntimeError(f"TTS failed ({mp3_resp.status_code}): {mp3_resp.text[:500]}")
         mp3_bytes = mp3_resp.content
 
         # Handle WAV response (non-fatal if it fails)
@@ -132,7 +128,7 @@ class AvatarBridge:
         )
 
         if len(mp3_bytes) < 100:
-            raise RuntimeError("Percy TTS returned too little audio data")
+            raise RuntimeError("TTS returned too little audio data")
 
         return mp3_bytes, wav_bytes
 
@@ -308,8 +304,8 @@ class AvatarBridge:
         emotion_severity = emotion_state.get("emotion_severity", 3)
         emotion_severity = max(1, min(5, int(emotion_severity)))
 
-        # Step 1: Synthesize speech with Percy voice (returns MP3 + WAV)
-        mp3_bytes, wav_bytes = await self.synthesize_percy(text)
+        # Step 1: Synthesize speech (returns MP3 + WAV)
+        mp3_bytes, wav_bytes = await self.synthesize_tts(text)
 
         # Step 2: Extract viseme timing from audio
         if wav_bytes:

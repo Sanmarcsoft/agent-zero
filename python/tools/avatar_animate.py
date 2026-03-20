@@ -1,5 +1,5 @@
 # Avatar real-time animation tool.
-# Synthesizes speech via Percy TTS (Qwen3-TTS), extracts visemes,
+# Synthesizes speech via SanMarcSoft TTS (Qwen3-TTS), extracts visemes,
 # and broadcasts animation data to connected avatar clients via WebSocket.
 
 import os
@@ -14,7 +14,7 @@ from python.helpers.print_style import PrintStyle
 class AvatarAnimate(Tool):
     """Animate the avatar with speech and emotion in real-time.
 
-    Uses the Percy voice (Qwen3-TTS) for speech synthesis, extracts
+    Uses the Q voice (Qwen3-TTS) for speech synthesis, extracts
     amplitude-based visemes for lip sync, and delivers the animation
     package to connected avatar clients via WebSocket broadcast.
     """
@@ -48,7 +48,7 @@ class AvatarAnimate(Tool):
 
         # ── run animation pipeline ───────────────────────────────────────
 
-        self.set_progress("Synthesizing speech with Percy voice...")
+        self.set_progress("Synthesizing speech with Q voice...")
 
         try:
             bridge = AvatarBridge()

@@ -1,6 +1,6 @@
 ## Avatar Animation (Real-Time)
 animate the avatar with speech and emotion in real-time via WebSocket
-uses Percy voice (Qwen3-TTS) for speech synthesis and amplitude-based viseme extraction for lip sync
+uses Q voice (Qwen3-TTS) for speech synthesis and amplitude-based viseme extraction for lip sync
 
 ### avatar_animate
 Synthesizes speech audio, extracts lip-sync visemes, and broadcasts animation data to connected avatar clients via WebSocket.
