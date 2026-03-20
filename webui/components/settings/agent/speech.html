@@ -283,7 +283,7 @@
                   <div style="display:flex; gap:8px; align-items:center;">
                     <select x-model="$store.settings.settings.tts_percy_voice"
                             :disabled="$store.speechConfig.ttsLoading"
-                            x-init="if (!$store.settings.settings.tts_percy_voice) $store.settings.settings.tts_percy_voice = 'percy'">
+                            x-init="if (!$store.settings.settings.tts_percy_voice) $store.settings.settings.tts_percy_voice = 'q'">
                       <template x-for="voice in $store.speechConfig.ttsVoices" :key="voice.id">
                         <option :value="voice.id"
                                 :selected="voice.id === $store.settings.settings.tts_percy_voice"

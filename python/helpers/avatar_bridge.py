@@ -26,7 +26,7 @@ from python.helpers.print_style import PrintStyle
 
 # ── configuration ────────────────────────────────────────────────────────────
 
-PERCY_TTS_URL = os.environ.get("PERCY_TTS_URL", "http://10.0.0.96:8880/v1")
+PERCY_TTS_URL = os.environ.get("TTS_URL", "http://10.0.0.96:8880/v1")
 PERCY_TTS_KEY = os.environ.get("PERCY_TTS_KEY", "prime-mouth")
 
 # Percy TTS returns MP3 (audio/mpeg). We need PCM for viseme analysis.
