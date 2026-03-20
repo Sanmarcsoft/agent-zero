@@ -56,7 +56,7 @@
 
         async testVoice() {
           const settings = Alpine.store("settings")?.settings;
-          const voice = settings?.tts_percy_voice || "percy";
+          const voice = settings?.tts_percy_voice || "q";
           if (this.testPlaying) return;
           this.testPlaying = true;
           try {
@@ -185,7 +185,7 @@
           <div class="field">
             <div class="field-label">
               <div class="field-title">TTS Engine</div>
-              <div class="field-description">Choose between local Kokoro TTS, external Percy TTS server, or browser-based speech.</div>
+              <div class="field-description">Choose between the SanMarcSoft TTS server (Q + Moneypenny voices), local Kokoro TTS, or browser-based speech.</div>
             </div>
             <div class="field-control">
               <select x-model="$store.settings.settings.tts_engine"
@@ -193,7 +193,7 @@
                       @change="const eng=$store.settings.settings.tts_engine; $store.settings.settings.tts_kokoro=(eng!=='browser')">
                 <option value="browser">Browser (built-in, basic quality)</option>
                 <option value="kokoro">Kokoro (local AI, good quality)</option>
-                <option value="percy">Percy TTS Server (external, high quality voice clones)</option>
+                <option value="percy">SanMarcSoft TTS Server (Q + Moneypenny voice clones)</option>
               </select>
             </div>
           </div>
@@ -205,16 +205,16 @@
             $store.settings.settings.tts_kokoro = (eng !== 'browser');
           " style="display:none;"></div>
 
-          <!-- Percy TTS Server Settings (shown when percy engine selected) -->
+          <!-- SanMarcSoft TTS Server Settings (shown when selected) -->
           <template x-if="$store.settings.settings.tts_engine === 'percy'">
             <div x-init="$store.speechConfig.connectAndLoad()">
 
               <!-- Server URL -->
               <div class="field">
                 <div class="field-label">
-                  <div class="field-title">Percy TTS Server URL</div>
+                  <div class="field-title">TTS Server URL</div>
                   <div class="field-description">
-                    The Qwen3-TTS server running on ai.matthewstevens.org (10.0.0.96:8880).
+                    SanMarcSoft TTS server on ai.matthewstevens.org (Qwen3-TTS with Q and Moneypenny voices).
                   </div>
                 </div>
                 <div class="field-control">
