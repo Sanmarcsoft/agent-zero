@@ -141,6 +141,15 @@ class Settings(TypedDict):
     stt_waiting_timeout: int
 
     tts_kokoro: bool
+    tts_engine: str  # "browser", "kokoro", or "percy"
+    tts_percy_url: str
+    tts_percy_voice: str
+    tts_percy_format: str
+
+    avatar_agent_name: str
+    avatar_voice: str
+    avatar_tts_url: str
+    avatar_image_data: str  # base64 data URL of face photo
 
     mcp_servers: str
     mcp_client_init_timeout: int
@@ -589,6 +598,14 @@ def get_default_settings() -> Settings:
         stt_silence_duration=get_default_value("stt_silence_duration", 1000),
         stt_waiting_timeout=get_default_value("stt_waiting_timeout", 2000),
         tts_kokoro=get_default_value("tts_kokoro", True),
+        tts_engine=get_default_value("tts_engine", "kokoro"),
+        tts_percy_url=get_default_value("tts_percy_url", "http://10.0.0.96:8880"),
+        tts_percy_voice=get_default_value("tts_percy_voice", "percy"),
+        tts_percy_format=get_default_value("tts_percy_format", "mp3"),
+        avatar_agent_name=get_default_value("avatar_agent_name", ""),
+        avatar_voice=get_default_value("avatar_voice", "percy"),
+        avatar_tts_url=get_default_value("avatar_tts_url", "http://10.0.0.96:8880"),
+        avatar_image_data=get_default_value("avatar_image_data", ""),
         mcp_servers=get_default_value("mcp_servers", '{\n    "mcpServers": {}\n}'),
         mcp_client_init_timeout=get_default_value("mcp_client_init_timeout", 10),
         mcp_client_tool_timeout=get_default_value("mcp_client_tool_timeout", 120),

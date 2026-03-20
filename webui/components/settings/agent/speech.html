@@ -189,7 +189,8 @@
             </div>
             <div class="field-control">
               <select x-model="$store.settings.settings.tts_engine"
-                      x-init="if (!$store.settings.settings.tts_engine) $store.settings.settings.tts_engine = $store.settings.settings.tts_kokoro ? 'kokoro' : 'browser'">
+                      x-init="if (!$store.settings.settings.tts_engine) { $store.settings.settings.tts_engine = $store.settings.settings.tts_kokoro ? 'kokoro' : 'browser'; }"
+                      @change="const eng=$store.settings.settings.tts_engine; $store.settings.settings.tts_kokoro=(eng!=='browser')">
                 <option value="browser">Browser (built-in, basic quality)</option>
                 <option value="kokoro">Kokoro (local AI, good quality)</option>
                 <option value="percy">Percy TTS Server (external, high quality voice clones)</option>
@@ -197,9 +198,12 @@
             </div>
           </div>
 
-          <!-- Kokoro toggle (legacy compat) - keep kokoro enabled for both kokoro AND percy engines
-               since percy uses the same server-side synthesis pipeline. Only browser mode disables it. -->
-          <input type="hidden" x-bind:value="$store.settings.settings.tts_kokoro = ($store.settings.settings.tts_engine !== 'browser')" />
+          <!-- Sync tts_kokoro from engine dropdown only when engine has an explicit value -->
+          <div x-data x-effect="
+            const eng = $store.settings.settings.tts_engine;
+            if (!eng) return;
+            $store.settings.settings.tts_kokoro = (eng !== 'browser');
+          " style="display:none;"></div>
 
           <!-- Percy TTS Server Settings (shown when percy engine selected) -->
           <template x-if="$store.settings.settings.tts_engine === 'percy'">
