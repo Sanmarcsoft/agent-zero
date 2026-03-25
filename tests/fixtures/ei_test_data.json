@@ -1,0 +1,235 @@
+{
+  "test_user_id": "ei-test-user",
+  "self_map_items": [
+    {
+      "item_id": "test-item-001",
+      "label": "spouse",
+      "quadrant": "people",
+      "power_level": 9,
+      "valence": 8,
+      "associations": "test-item-002",
+      "source": "user_stated",
+      "created_at": "2026-03-19T00:00:00Z",
+      "updated_at": "2026-03-19T00:00:00Z"
+    },
+    {
+      "item_id": "test-item-002",
+      "label": "children",
+      "quadrant": "people",
+      "power_level": 10,
+      "valence": 9,
+      "associations": "test-item-001",
+      "source": "user_stated",
+      "created_at": "2026-03-19T00:00:00Z",
+      "updated_at": "2026-03-19T00:00:00Z"
+    },
+    {
+      "item_id": "test-item-003",
+      "label": "career as software engineer",
+      "quadrant": "accomplishments",
+      "power_level": 7,
+      "valence": 6,
+      "associations": "",
+      "source": "user_stated",
+      "created_at": "2026-03-19T00:00:00Z",
+      "updated_at": "2026-03-19T00:00:00Z"
+    },
+    {
+      "item_id": "test-item-004",
+      "label": "growing up in Chicago",
+      "quadrant": "life_story",
+      "power_level": 5,
+      "valence": 4,
+      "associations": "",
+      "source": "inferred",
+      "created_at": "2026-03-19T00:00:00Z",
+      "updated_at": "2026-03-19T00:00:00Z"
+    },
+    {
+      "item_id": "test-item-005",
+      "label": "open source philosophy",
+      "quadrant": "ideas_likes",
+      "power_level": 6,
+      "valence": 7,
+      "associations": "test-item-003",
+      "source": "agent_observed",
+      "created_at": "2026-03-19T00:00:00Z",
+      "updated_at": "2026-03-19T00:00:00Z"
+    }
+  ],
+  "emotion_log_events": [
+    {
+      "equation_id": "test-eq-001",
+      "perception": "Spouse mentioned wanting to relocate for work",
+      "affected_item_label": "spouse",
+      "ep_power": 9,
+      "p_weight": 7,
+      "emotion_group": "worry",
+      "severity": 4,
+      "severity_label": "distraught",
+      "valence_shift": "negative",
+      "source": "external",
+      "time_frame": "future",
+      "timestamp": "2026-03-19T10:00:00Z"
+    },
+    {
+      "equation_id": "test-eq-002",
+      "perception": "Received promotion at work",
+      "affected_item_label": "career as software engineer",
+      "ep_power": 7,
+      "p_weight": 8,
+      "emotion_group": "happiness",
+      "severity": 4,
+      "severity_label": "elated",
+      "valence_shift": "positive",
+      "source": "external",
+      "time_frame": "now",
+      "timestamp": "2026-03-19T11:00:00Z"
+    },
+    {
+      "equation_id": "test-eq-003",
+      "perception": "Child got sick at school",
+      "affected_item_label": "children",
+      "ep_power": 10,
+      "p_weight": 6,
+      "emotion_group": "fear",
+      "severity": 4,
+      "severity_label": "horror",
+      "valence_shift": "negative",
+      "source": "internal",
+      "time_frame": "now",
+      "timestamp": "2026-03-19T12:00:00Z"
+    },
+    {
+      "equation_id": "test-eq-004",
+      "perception": "Colleague took credit for work",
+      "affected_item_label": "career as software engineer",
+      "ep_power": 7,
+      "p_weight": 5,
+      "emotion_group": "anger",
+      "severity": 3,
+      "severity_label": "angry",
+      "valence_shift": "negative",
+      "source": "external",
+      "time_frame": "now",
+      "timestamp": "2026-03-19T13:00:00Z"
+    },
+    {
+      "equation_id": "test-eq-005",
+      "perception": "Realized missed anniversary dinner",
+      "affected_item_label": "spouse",
+      "ep_power": 9,
+      "p_weight": 8,
+      "emotion_group": "shame",
+      "severity": 5,
+      "severity_label": "remorse",
+      "valence_shift": "negative",
+      "source": "internal",
+      "time_frame": "now",
+      "timestamp": "2026-03-19T14:00:00Z"
+    },
+    {
+      "equation_id": "test-eq-006",
+      "perception": "Old friend reached out after years",
+      "affected_item_label": "growing up in Chicago",
+      "ep_power": 5,
+      "p_weight": 4,
+      "emotion_group": "happiness",
+      "severity": 3,
+      "severity_label": "happy",
+      "valence_shift": "positive",
+      "source": "external",
+      "time_frame": "now",
+      "timestamp": "2026-03-19T15:00:00Z"
+    },
+    {
+      "equation_id": "test-eq-007",
+      "perception": "Company announced layoffs coming",
+      "affected_item_label": "career as software engineer",
+      "ep_power": 7,
+      "p_weight": 7,
+      "emotion_group": "worry",
+      "severity": 4,
+      "severity_label": "distraught",
+      "valence_shift": "negative",
+      "source": "external",
+      "time_frame": "future",
+      "timestamp": "2026-03-19T16:00:00Z"
+    },
+    {
+      "equation_id": "test-eq-008",
+      "perception": "Open source project got 1000 stars",
+      "affected_item_label": "open source philosophy",
+      "ep_power": 6,
+      "p_weight": 5,
+      "emotion_group": "pride",
+      "severity": 3,
+      "severity_label": "pride_3",
+      "valence_shift": "positive",
+      "source": "external",
+      "time_frame": "now",
+      "timestamp": "2026-03-19T17:00:00Z"
+    },
+    {
+      "equation_id": "test-eq-009",
+      "perception": "Reflected on decision to leave previous city",
+      "affected_item_label": "growing up in Chicago",
+      "ep_power": 5,
+      "p_weight": 4,
+      "emotion_group": "regret",
+      "severity": 3,
+      "severity_label": "regret",
+      "valence_shift": "negative",
+      "source": "internal",
+      "time_frame": "past",
+      "timestamp": "2026-03-19T18:00:00Z"
+    },
+    {
+      "equation_id": "test-eq-010",
+      "perception": "Unexpected gift from children",
+      "affected_item_label": "children",
+      "ep_power": 10,
+      "p_weight": 6,
+      "emotion_group": "happiness",
+      "severity": 4,
+      "severity_label": "elated",
+      "valence_shift": "positive",
+      "source": "external",
+      "time_frame": "now",
+      "timestamp": "2026-03-19T19:00:00Z"
+    }
+  ],
+  "tom_profiles": [
+    {
+      "profile_id": "test-tom-001",
+      "person_name": "spouse",
+      "person_display_name": "Spouse",
+      "relationship": "married partner",
+      "attachments": [
+        {"label": "family", "quadrant": "people", "power_level": 10, "valence": 9},
+        {"label": "career", "quadrant": "accomplishments", "power_level": 7, "valence": 5},
+        {"label": "hometown friends", "quadrant": "people", "power_level": 6, "valence": 7}
+      ]
+    },
+    {
+      "profile_id": "test-tom-002",
+      "person_name": "manager",
+      "person_display_name": "Manager",
+      "relationship": "work supervisor",
+      "attachments": [
+        {"label": "team performance", "quadrant": "accomplishments", "power_level": 8, "valence": 6},
+        {"label": "company reputation", "quadrant": "ideas_likes", "power_level": 7, "valence": 5}
+      ]
+    },
+    {
+      "profile_id": "test-tom-003",
+      "person_name": "old friend",
+      "person_display_name": "Old Friend",
+      "relationship": "childhood friend",
+      "attachments": [
+        {"label": "Chicago memories", "quadrant": "life_story", "power_level": 6, "valence": 8},
+        {"label": "friendship", "quadrant": "people", "power_level": 7, "valence": 7}
+      ]
+    }
+  ]
+}

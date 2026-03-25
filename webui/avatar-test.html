@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Zero — Avatar Animation Test</title>
+<style>
+:root{--bg:#0f1117;--bg2:#1a1d27;--bg3:#252836;--text:#e4e6eb;--text2:#a0a3b1;--accent:#6366f1;--accent2:#818cf8;--border:#2d3042;--green:#22c55e;--warn:#f59e0b;--err:#ef4444}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.hdr{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:14px}
+.hdr h1{font-size:17px;font-weight:600}.hdr .b{background:var(--accent);color:#fff;padding:2px 9px;border-radius:10px;font-size:10px}
+.hdr a{color:var(--text2);text-decoration:none;font-size:12px;margin-left:auto}.hdr a:hover{color:var(--accent)}
+.lay{display:grid;grid-template-columns:1fr 360px;height:calc(100vh - 49px)}
+@media(max-width:800px){.lay{grid-template-columns:1fr}}
+.vp{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.cw{position:relative;border-radius:14px;background:var(--bg2);border:2px solid var(--border);overflow:hidden}
+.cw canvas{display:block}
+.sb{margin-top:10px;display:flex;gap:14px;font-size:11px;color:var(--text2)}
+.d{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--err);vertical-align:middle;margin-right:3px}
+.d.on{background:var(--green)}
+.ctl{background:var(--bg2);border-left:1px solid var(--border);overflow-y:auto;padding:14px}
+.s{margin-bottom:18px}.s h3{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+.f{margin-bottom:8px}.f label{display:block;font-size:11px;color:var(--text2);margin-bottom:2px}
+select,input[type=range],input[type=text]{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text);padding:5px 8px;font-size:12px;outline:none}
+input[type=range]{padding:0;-webkit-appearance:none;height:4px;border-radius:2px;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--accent);cursor:pointer}
+.rv{text-align:right;font-size:10px;color:var(--accent);margin-top:1px}
+button{background:var(--accent);color:#fff;border:none;border-radius:5px;padding:7px 12px;font-size:12px;font-weight:500;cursor:pointer;width:100%}
+button:hover{background:var(--accent2)}
+button.sc{background:var(--bg3);border:1px solid var(--border)}button.sc:hover{background:var(--border)}
+.rw{display:flex;gap:5px;margin-bottom:5px}.rw button{flex:1}
+.tr{display:flex;align-items:center;justify-content:space-between;padding:4px 0}
+.sw{position:relative;width:36px;height:18px}.sw input{opacity:0;width:0;height:0}
+.sw span{position:absolute;inset:0;background:var(--bg3);border-radius:9px;cursor:pointer;border:1px solid var(--border);transition:.2s}
+.sw span::after{content:'';position:absolute;width:12px;height:12px;border-radius:50%;background:var(--text2);top:2px;left:2px;transition:.2s}
+.sw input:checked+span{background:var(--accent);border-color:var(--accent)}.sw input:checked+span::after{transform:translateX(18px);background:#fff}
+.eg{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}
+.eb{padding:4px 2px;font-size:9px;text-align:center;border-radius:4px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);cursor:pointer}
+.eb:hover,.eb.a{border-color:var(--accent);color:var(--accent);background:rgba(99,102,241,.1)}
+.vg{display:flex;gap:2px;flex-wrap:wrap}
+.vb{width:26px;height:26px;border-radius:4px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer}
+.vb:hover,.vb.a{border-color:var(--accent);background:rgba(99,102,241,.1)}
+.dz{border:2px dashed var(--border);border-radius:7px;padding:16px;text-align:center;cursor:pointer;color:var(--text2);font-size:11px;transition:.2s}
+.dz:hover,.dz.ov{border-color:var(--accent);color:var(--accent)}
+.dz img{max-width:100%;max-height:70px;border-radius:5px;margin-top:6px}
+.log{background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:5px;font-family:monospace;font-size:9px;color:var(--text2);height:90px;overflow-y:auto;white-space:pre-wrap}
+.notice{font-size:10px;padding:5px;border-radius:5px;margin-bottom:6px}
+.notice.info{background:rgba(99,102,241,.1);color:var(--accent2)}
+.notice.ok{background:rgba(34,197,94,.1);color:var(--green)}
+.notice.warn{background:rgba(245,158,11,.1);color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="hdr"><h1>Avatar Animation Test</h1><span class="b">MHH-EI</span><span class="b" style="background:var(--green)">MediaPipe</span><a href="/">&larr; Agent Zero</a></div>
+<div class="lay">
+<div class="vp">
+<div class="cw"><canvas id="cv" width="480" height="480"></canvas></div>
+<div class="sb">
+<span><span class="d" id="sR"></span>Render</span>
+<span><span class="d" id="sI"></span>Image</span>
+<span><span class="d" id="sF"></span>Face</span>
+<span><span class="d" id="sL"></span>Lip</span>
+<span><span class="d" id="sE"></span>Emo</span>
+<span id="fps">0 FPS</span>
+</div>
+</div>
+<div class="ctl">
+
+<div class="s"><h3>Avatar Image</h3>
+<div class="dz" id="dz" onclick="document.getElementById('fi').click()">
+Drop avatar head image or click to browse
+<input type="file" id="fi" accept="image/*" style="display:none" onchange="handleFile(this.files[0])">
+</div>
+<div class="f" style="margin-top:6px"><label>Or paste URL</label>
+<div class="rw"><input type="text" id="iu" placeholder="https://..."><button class="sc" style="width:auto;padding:5px 10px" onclick="loadUrl()">Load</button></div>
+</div>
+<div id="faceStatus" class="notice info" style="display:none"></div>
+</div>
+
+<div class="s"><h3>Renderer</h3>
+<div class="rw"><button onclick="start()">Start</button><button class="sc" onclick="stop()">Stop</button></div>
+<div class="tr"><label>Show Mesh Wireframe</label><label class="sw"><input type="checkbox" id="showMesh" onchange="S.showMesh=this.checked"><span></span></label></div>
+<div class="tr"><label>Show Landmarks</label><label class="sw"><input type="checkbox" id="showLM" onchange="S.showLM=this.checked"><span></span></label></div>
+<div class="f"><label>Head Scale</label><input type="range" id="hsc" min=".3" max="1.5" step=".05" value=".85" oninput="$rv('hsv',this.value)"><div class="rv" id="hsv">0.85</div></div>
+</div>
+
+<div class="s"><h3>Vector Background</h3>
+<div class="tr"><label>Enable</label><label class="sw"><input type="checkbox" checked onchange="S.feat.bg=this.checked"><span></span></label></div>
+<div class="tr"><label>Scanlines</label><label class="sw"><input type="checkbox" checked onchange="S.feat.scan=this.checked"><span></span></label></div>
+<div class="tr"><label>Glitch</label><label class="sw"><input type="checkbox" checked onchange="S.feat.glitch=this.checked"><span></span></label></div>
+<div class="tr"><label>Grid</label><label class="sw"><input type="checkbox" checked onchange="S.feat.grid=this.checked"><span></span></label></div>
+<div class="f"><label>Shapes</label><input type="range" id="nShapes" min="4" max="24" value="12" step="1" oninput="$rv('nsv',this.value);resizeShapes(+this.value)"><div class="rv" id="nsv">12</div></div>
+<div class="f"><label>Speed</label><input type="range" id="spd" min=".2" max="3" step=".1" value="1" oninput="$rv('spv',this.value)"><div class="rv" id="spv">1</div></div>
+</div>
+
+<div class="s"><h3>Emotion</h3>
+<div class="eg" id="eG"></div>
+<div class="f" style="margin-top:6px"><label>Severity</label><input type="range" id="sev" min="1" max="5" value="3" oninput="$rv('svv',this.value);S.sev=+this.value"><div class="rv" id="svv">3</div></div>
+</div>
+
+<div class="s"><h3>Lip Sync</h3>
+<div class="vg" id="vG"></div>
+<div class="f" style="margin-top:6px"><label>Phrase</label><input type="text" id="phr" value="Hello, how are you feeling today?"></div>
+<button class="sc" onclick="testLip()">Play Lip Sync</button>
+</div>
+
+<div class="s"><h3>Idle</h3>
+<div class="tr"><label>Blink</label><label class="sw"><input type="checkbox" checked onchange="S.feat.blink=this.checked"><span></span></label></div>
+<div class="tr"><label>Breathe</label><label class="sw"><input type="checkbox" checked onchange="S.feat.breath=this.checked"><span></span></label></div>
+<div class="tr"><label>Sway</label><label class="sw"><input type="checkbox" checked onchange="S.feat.sway=this.checked"><span></span></label></div>
+<div class="f"><label>Blink Interval</label><input type="range" id="blI" min="1000" max="8000" value="3500" step="500" oninput="$rv('biv',this.value)"><div class="rv" id="biv">3500</div></div>
+</div>
+
+<div class="s"><h3>Log</h3><div class="log" id="lg">Ready.</div><button class="sc" style="margin-top:4px" onclick="lg.textContent='Cleared.'">Clear</button></div>
+</div>
+</div>
+
+<script type="module">
+// ── MediaPipe Face Landmarker ──────────────────────────────────────────
+import {FaceLandmarker, FilesetResolver, DrawingUtils} from
+  "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/vision_bundle.mjs";
+
+const $=s=>document.getElementById(s),$rv=(id,v)=>$(id).textContent=v;
+const lg=$('lg');
+function log(m){const t=new Date().toLocaleTimeString('en',{hour12:false});lg.textContent+=`\n[${t}] ${m}`;lg.scrollTop=1e6;}
+window.log=log; // expose for inline handlers
+
+// ── state ──
+const S=window.S={
+    run:false, emo:'neutral', sev:3, vis:'rest',
+    feat:{blink:true,breath:true,sway:true,bg:true,scan:true,glitch:true,grid:true},
+    img:null, faceLM:null, baseLM:null, // MediaPipe landmarks
+    showMesh:false, showLM:false,
+    fc:0, fpsT:Date.now(), aid:null,
+};
+window.S=S;
+
+// ── emotion/viseme defs ──
+const EMO={
+    neutral:{ew:1,by:0,mc:0,mo:0,col:'#6366f1'},
+    happiness:{ew:.92,by:.08,mc:.7,mo:.15,col:'#22c55e'},
+    sadness:{ew:.75,by:-.15,mc:-.4,mo:0,col:'#3b82f6'},
+    anger:{ew:.82,by:-.35,mc:-.25,mo:.05,col:'#ef4444'},
+    fear:{ew:1.3,by:.25,mc:-.15,mo:.3,col:'#8b5cf6'},
+    surprise:{ew:1.4,by:.35,mc:.2,mo:.5,col:'#06b6d4'},
+    disgust:{ew:.72,by:-.25,mc:-.5,mo:.1,col:'#84cc16'},
+    worry:{ew:1.05,by:.15,mc:-.15,mo:.05,col:'#a855f7'},
+    pride:{ew:.88,by:.08,mc:.35,mo:0,col:'#f59e0b'},
+    shame:{ew:.65,by:-.08,mc:-.2,mo:0,col:'#78716c'},
+    curiosity:{ew:1.15,by:.15,mc:.15,mo:.1,col:'#14b8a6'},
+    love:{ew:.87,by:.04,mc:.5,mo:.08,col:'#ec4899'},
+};
+const VIS={
+    rest:{o:0,w:0,s:0},aa:{o:.8,w:.4,s:0},ee:{o:.2,w:.6,s:0},ih:{o:.3,w:.5,s:0},
+    oh:{o:.65,w:-.1,s:.7},oo:{o:.45,w:-.2,s:.9},mm:{o:0,w:-.1,s:0},ff:{o:.08,w:.3,s:0},
+    th:{o:.15,w:.2,s:0},ss:{o:.08,w:.5,s:0},
+};
+
+// build UI
+const eG=$('eG');for(const e of Object.keys(EMO)){const b=document.createElement('div');b.className='eb';b.dataset.e=e;b.textContent=e[0].toUpperCase()+e.slice(1);b.onclick=()=>setEmo(e);eG.appendChild(b);}
+const vG=$('vG');for(const v of Object.keys(VIS)){const b=document.createElement('div');b.className='vb';b.dataset.v=v;b.textContent=v==='rest'?'-':v.toUpperCase();b.onclick=()=>setVis(v);vG.appendChild(b);}
+
+// ── init MediaPipe ──
+let faceLandmarker=null;
+async function initMediaPipe(){
+    log('Loading MediaPipe Face Landmarker...');
+    try{
+        const vision=await FilesetResolver.forVisionTasks(
+            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm"
+        );
+        faceLandmarker=await FaceLandmarker.createFromOptions(vision,{
+            baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.tflite",delegate:"GPU"},
+            runningMode:"IMAGE",
+            numFaces:1,
+            outputFacialTransformationMatrixes:false,
+            outputFaceBlendshapes:true,
+        });
+        log('MediaPipe ready (GPU-accelerated)');
+    }catch(e){
+        log('MediaPipe init error: '+e.message+' — trying CPU...');
+        try{
+            const vision=await FilesetResolver.forVisionTasks(
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm"
+            );
+            faceLandmarker=await FaceLandmarker.createFromOptions(vision,{
+                baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.tflite",delegate:"CPU"},
+                runningMode:"IMAGE",numFaces:1,outputFaceBlendshapes:true,
+            });
+            log('MediaPipe ready (CPU)');
+        }catch(e2){log('MediaPipe failed: '+e2.message);}
+    }
+}
+initMediaPipe();
+
+// ── image loading ──
+const dz=$('dz');
+dz.ondragover=e=>{e.preventDefault();dz.classList.add('ov')};
+dz.ondragleave=()=>dz.classList.remove('ov');
+dz.ondrop=e=>{e.preventDefault();dz.classList.remove('ov');if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0])};
+window.handleFile=function(file){
+    if(!file||!file.type.startsWith('image/'))return;
+    const r=new FileReader();r.onload=e=>loadImg(e.target.result,file.name);r.readAsDataURL(file);
+};
+window.loadUrl=function(){const u=$('iu').value.trim();if(u)loadImg(u,u.split('/').pop());};
+
+function loadImg(src,name){
+    const img=new Image();img.crossOrigin='anonymous';
+    img.onload=async()=>{
+        S.img=img;$('sI').classList.add('on');
+        dz.innerHTML=`<img src="${img.src}"><br><span style="font-size:10px">${name} (${img.naturalWidth}x${img.naturalHeight})</span>`;
+        log(`Image: ${name} ${img.naturalWidth}x${img.naturalHeight}`);
+        await detectFace(img);
+        if(!S.run)start();
+    };
+    img.onerror=()=>log('Failed: '+name);
+    img.src=src;
+}
+
+async function detectFace(img){
+    const fs=$('faceStatus');
+    if(!faceLandmarker){fs.style.display='';fs.className='notice warn';fs.textContent='MediaPipe not loaded yet. Retrying...';await initMediaPipe();}
+    if(!faceLandmarker){fs.textContent='MediaPipe unavailable — using manual mode.';return;}
+
+    fs.style.display='';fs.className='notice info';fs.textContent='Detecting face landmarks...';
+
+    // draw image to temp canvas for MediaPipe
+    const tc=document.createElement('canvas');
+    tc.width=img.naturalWidth;tc.height=img.naturalHeight;
+    tc.getContext('2d').drawImage(img,0,0);
+
+    try{
+        const result=faceLandmarker.detect(tc);
+        if(result.faceLandmarks&&result.faceLandmarks.length>0){
+            S.baseLM=result.faceLandmarks[0]; // 478 landmarks normalised 0-1
+            S.faceLM=S.baseLM.map(p=>({x:p.x,y:p.y,z:p.z}));
+            $('sF').classList.add('on');
+            fs.className='notice ok';
+            fs.textContent=`Face detected: ${S.baseLM.length} landmarks. Mesh warping active.`;
+            log(`Face detected: ${S.baseLM.length} landmarks`);
+        }else{
+            fs.className='notice warn';fs.textContent='No face detected. Try a clearer frontal photo.';
+            log('No face detected');
+        }
+    }catch(e){
+        fs.className='notice warn';fs.textContent='Detection error: '+e.message;
+        log('Face detection error: '+e.message);
+    }
+}
+
+// ── Triangulation indices for MediaPipe face mesh ──
+// Subset of the canonical MediaPipe face mesh triangulation for key animation regions
+// Full mesh has ~900 triangles; we use a curated subset covering the whole face
+const FACE_TRIS = buildFaceTriangulation();
+
+function buildFaceTriangulation(){
+    // MediaPipe canonical face mesh triangulation (subset for performance)
+    // These are standard MediaPipe FACEMESH_TESSELATION indices
+    // Source: https://github.com/google/mediapipe/blob/master/mediapipe/modules/face_geometry/data/canonical_face_model_uv_visualization.png
+    return [
+        // forehead
+        [10,338,297],[10,297,332],[10,332,284],[10,284,251],[10,251,389],[10,389,356],[10,356,454],[10,454,323],[10,323,361],[10,361,288],
+        [10,288,397],[10,397,365],[10,365,379],[10,379,378],[10,378,400],[10,400,377],[10,377,152],[10,152,148],[10,148,176],[10,176,149],
+        [10,149,150],[10,150,136],[10,136,172],[10,172,58],[10,58,132],[10,132,93],[10,93,234],[10,234,127],[10,127,162],[10,162,21],
+        [10,21,54],[10,54,103],[10,103,67],[10,67,109],
+        // left eye region
+        [33,7,163],[7,163,144],[163,144,145],[144,145,153],[145,153,154],[153,154,155],[154,155,133],[155,133,173],[133,173,157],
+        [157,158,173],[158,159,173],[159,160,173],[160,161,173],[161,246,173],[246,33,173],[33,173,7],
+        // right eye region
+        [263,249,390],[249,390,373],[390,373,374],[373,374,380],[374,380,381],[380,381,382],[381,382,362],[382,362,398],
+        [362,398,384],[384,385,398],[385,386,398],[386,387,398],[387,388,398],[388,466,398],[466,263,398],[263,398,249],
+        // nose
+        [168,6,197],[6,197,195],[197,195,5],[195,5,4],[4,1,19],[1,19,94],[19,94,2],[2,164,0],[0,164,167],[167,164,393],
+        [393,164,391],[391,164,165],[165,164,166],[166,164,167],
+        // mouth outer
+        [61,146,91],[91,181,84],[84,17,314],[314,405,321],[321,375,291],[291,409,270],[270,269,267],
+        [267,0,302],[302,303,271],[271,272,310],[310,311,312],[312,13,82],[82,81,80],[80,191,78],[78,95,88],
+        [88,178,87],[87,14,317],[317,402,318],[318,324,308],[308,415,310],
+        // mouth inner
+        [78,191,80],[80,81,82],[82,13,312],[312,311,310],[310,415,308],[308,324,318],[318,402,317],[317,14,87],
+        [87,178,88],[88,95,78],
+        // lips
+        [61,185,40],[40,39,37],[37,0,267],[267,269,270],[270,409,291],[291,375,321],[321,405,314],[314,17,84],
+        [84,181,91],[91,146,61],
+        // cheeks
+        [132,93,234],[234,127,162],[162,21,54],[54,103,67],[67,109,10],
+        [361,288,397],[397,365,379],[379,378,400],[400,377,152],
+        // jaw
+        [152,148,176],[176,149,150],[150,136,172],[172,58,132],
+        [152,377,400],[400,378,379],[379,365,397],[397,288,361],
+        // chin
+        [152,175,199],[199,175,152],[18,200,199],[200,175,152],
+    ];
+}
+
+// Key landmark indices for animation control
+const LM_IDX = {
+    // mouth
+    lipTop: 13, lipBot: 14, mouthL: 61, mouthR: 291,
+    lipTopOuter: 0, lipBotOuter: 17,
+    upperLipInner: [82,81,80,191,78,95,88,178,87,14,317,402,318,324,308,415,310,311,312,13],
+    lowerLipInner: [78,95,88,178,87,14,317,402,318,324,308],
+    // eyes
+    eyeTopL:[159,160,161,246], eyeBotL:[144,145,153,154],
+    eyeTopR:[386,387,388,466], eyeBotR:[373,374,380,381],
+    eyeLidTopL:159, eyeLidBotL:145, eyeLidTopR:386, eyeLidBotR:374,
+    // brows
+    browInnerL:107, browMidL:105, browOuterL:70,
+    browInnerR:336, browMidR:334, browOuterR:300,
+    // reference
+    noseTip:4, chin:152, foreHead:10,
+};
+
+// ── canvas ──
+const cv=$('cv'),ctx=cv.getContext('2d');
+
+// ── animation vars ──
+let curE={...EMO.neutral},tgtE={...EMO.neutral};
+let curM={...VIS.rest},tgtM={...VIS.rest};
+let blinkT=0,blinking=false,blinkP=0,breathP=0,swayX=0,swayY=0;
+
+function lerp(a,b,t){return a+(b-a)*t;}
+
+// ── compute animated landmarks ──
+function animateLandmarks(){
+    if(!S.baseLM)return null;
+    const lm=S.baseLM.map(p=>({x:p.x,y:p.y}));
+    const sev=S.sev/5;
+    const blink=blinking?Math.sin(blinkP):0;
+
+    // reference distances for scaling deformations
+    const noseY=lm[LM_IDX.noseTip].y;
+    const foreY=lm[LM_IDX.foreHead].y;
+    const faceH=lm[LM_IDX.chin].y-foreY;
+    const sc=faceH*0.03; // deformation scale
+
+    // ── mouth open ──
+    const mouthOpen=(curM.o*sev*0.6+curE.mo*sev*0.3)*sc;
+    // move lower lip down, upper lip up slightly
+    const lipTopIdx=[13,82,81,80,312,311,310];
+    const lipBotIdx=[14,87,178,88,317,402,318];
+    for(const i of lipTopIdx) lm[i].y-=mouthOpen*0.3;
+    for(const i of lipBotIdx) lm[i].y+=mouthOpen*0.7;
+    // outer lips follow
+    lm[0].y-=mouthOpen*0.15;
+    lm[17].y+=mouthOpen*0.5;
+
+    // ── mouth width (smile/frown) ──
+    const mCurve=curE.mc*sev*sc*0.5;
+    const mWidth=curM.w*sev*sc*0.3;
+    lm[LM_IDX.mouthL].x-=mWidth; lm[LM_IDX.mouthL].y-=mCurve;
+    lm[LM_IDX.mouthR].x+=mWidth; lm[LM_IDX.mouthR].y-=mCurve;
+
+    // ── blink (close eyes) ──
+    const blinkAmt=blink*sc*2;
+    for(const i of LM_IDX.eyeTopL) lm[i].y+=blinkAmt;
+    for(const i of LM_IDX.eyeBotL) lm[i].y-=blinkAmt*0.3;
+    for(const i of LM_IDX.eyeTopR) lm[i].y+=blinkAmt;
+    for(const i of LM_IDX.eyeBotR) lm[i].y-=blinkAmt*0.3;
+
+    // ── eye width (emotion) ──
+    const eyeW=(curE.ew-1)*sev*sc*0.8;
+    for(const i of LM_IDX.eyeTopL) lm[i].y-=eyeW;
+    for(const i of LM_IDX.eyeTopR) lm[i].y-=eyeW;
+
+    // ── brow shift ──
+    const browAmt=curE.by*sev*sc*1.5;
+    for(const i of [LM_IDX.browInnerL,LM_IDX.browMidL,LM_IDX.browOuterL]) lm[i].y-=browAmt;
+    for(const i of [LM_IDX.browInnerR,LM_IDX.browMidR,LM_IDX.browOuterR]) lm[i].y-=browAmt;
+
+    return lm;
+}
+
+// ── draw warped triangle ──
+function drawTriangle(srcLM,dstLM,tri,img,iw,ih,dw,dh,dx,dy){
+    const [a,b,c]=tri;
+    if(!srcLM[a]||!srcLM[b]||!srcLM[c]||!dstLM[a]||!dstLM[b]||!dstLM[c])return;
+
+    // source coords (image pixels)
+    const sx0=srcLM[a].x*iw, sy0=srcLM[a].y*ih;
+    const sx1=srcLM[b].x*iw, sy1=srcLM[b].y*ih;
+    const sx2=srcLM[c].x*iw, sy2=srcLM[c].y*ih;
+
+    // dest coords (canvas pixels)
+    const dx0=dx+dstLM[a].x*dw, dy0=dy+dstLM[a].y*dh;
+    const dx1=dx+dstLM[b].x*dw, dy1=dy+dstLM[b].y*dh;
+    const dx2=dx+dstLM[c].x*dw, dy2=dy+dstLM[c].y*dh;
+
+    // skip degenerate triangles
+    const area=Math.abs((dx1-dx0)*(dy2-dy0)-(dx2-dx0)*(dy1-dy0));
+    if(area<0.5)return;
+
+    ctx.save();
+
+    // clip to destination triangle
+    ctx.beginPath();
+    ctx.moveTo(dx0,dy0);ctx.lineTo(dx1,dy1);ctx.lineTo(dx2,dy2);
+    ctx.closePath();ctx.clip();
+
+    // compute affine transform: source triangle → destination triangle
+    // [sx0,sy0,1] → [dx0,dy0]
+    // [sx1,sy1,1] → [dx1,dy1]
+    // [sx2,sy2,1] → [dx2,dy2]
+    const denom=sx0*(sy1-sy2)+sx1*(sy2-sy0)+sx2*(sy0-sy1);
+    if(Math.abs(denom)<1e-6){ctx.restore();return;}
+
+    const m11=(dx0*(sy1-sy2)+dx1*(sy2-sy0)+dx2*(sy0-sy1))/denom;
+    const m12=(dx0*(sx2-sx1)+dx1*(sx0-sx2)+dx2*(sx1-sx0))/denom;
+    const m13=(dx0*(sx1*sy2-sx2*sy1)+dx1*(sx2*sy0-sx0*sy2)+dx2*(sx0*sy1-sx1*sy0))/denom;
+    const m21=(dy0*(sy1-sy2)+dy1*(sy2-sy0)+dy2*(sy0-sy1))/denom;
+    const m22=(dy0*(sx2-sx1)+dy1*(sx0-sx2)+dy2*(sx1-sx0))/denom;
+    const m23=(dy0*(sx1*sy2-sx2*sy1)+dy1*(sx2*sy0-sx0*sy2)+dy2*(sx0*sy1-sx1*sy0))/denom;
+
+    ctx.setTransform(m11,m21,m12,m22,m13,m23);
+    ctx.drawImage(img,0,0);
+    ctx.restore();
+}
+
+// ── Max Headroom vector background ──
+const BG={shapes:[],gridZ:0,glitchLines:[],glitchT:0,scanOff:0,neonP:0,init:false};
+const NEON=['#00ffff','#ff00ff','#00ff41','#ffff00','#ff3366','#33ccff','#ff6600','#66ff33'];
+
+function initBG(){
+    if(BG.init)return;BG.init=true;
+    for(let i=0;i<12;i++){
+        const t=Math.random();let v=[],e=[];const s=20+Math.random()*30;
+        if(t<.3){v=[[-s,-s,-s],[s,-s,-s],[s,s,-s],[-s,s,-s],[-s,-s,s],[s,-s,s],[s,s,s],[-s,s,s]];e=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];}
+        else if(t<.55){v=[[0,-s*1.2,0],[-s,s,-s],[s,s,-s],[s,s,s],[-s,s,s]];e=[[0,1],[0,2],[0,3],[0,4],[1,2],[2,3],[3,4],[4,1]];}
+        else if(t<.75){v=[[0,-s,0],[s,0,0],[0,0,s],[-s,0,0],[0,0,-s],[0,s,0]];e=[[0,1],[0,2],[0,3],[0,4],[5,1],[5,2],[5,3],[5,4],[1,2],[2,3],[3,4],[4,1]];}
+        else{const h=s*(1.5+Math.random());v=[[0,-h,0],[s,0,s],[s,0,-s],[-s,0,-s],[-s,0,s],[0,h,0]];e=[[0,1],[0,2],[0,3],[0,4],[5,1],[5,2],[5,3],[5,4],[1,2],[2,3],[3,4],[4,1]];}
+        BG.shapes.push({v,e,rx:Math.random()*6.28,ry:Math.random()*6.28,rz:Math.random()*6.28,drx:(Math.random()-.5)*.02,dry:(Math.random()-.5)*.025,drz:(Math.random()-.5)*.015,px:(Math.random()-.5)*400,py:(Math.random()-.5)*350,pz:150+Math.random()*300,dx:(Math.random()-.5)*.3,dy:(Math.random()-.5)*.2,col:NEON[Math.floor(Math.random()*NEON.length)],a:.15+Math.random()*.35});
+    }
+}
+window.resizeShapes=function(n){
+    while(BG.shapes.length>n)BG.shapes.pop();
+    while(BG.shapes.length<n){const s=20+Math.random()*30;const v=[[-s,-s,-s],[s,-s,-s],[s,s,-s],[-s,s,-s],[-s,-s,s],[s,-s,s],[s,s,s],[-s,s,s]];const e=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];BG.shapes.push({v,e,rx:Math.random()*6.28,ry:Math.random()*6.28,rz:Math.random()*6.28,drx:(Math.random()-.5)*.02,dry:(Math.random()-.5)*.025,drz:(Math.random()-.5)*.015,px:(Math.random()-.5)*400,py:(Math.random()-.5)*350,pz:150+Math.random()*300,dx:(Math.random()-.5)*.3,dy:(Math.random()-.5)*.2,col:NEON[Math.floor(Math.random()*NEON.length)],a:.15+Math.random()*.35});}
+};
+
+function proj(x,y,z,W,H){const f=500,s=f/(f+z);return{x:W/2+x*s,y:H/2+y*s,s};}
+function rot(v,rx,ry,rz){let[x,y,z]=v;let y1=y*Math.cos(rx)-z*Math.sin(rx),z1=y*Math.sin(rx)+z*Math.cos(rx);y=y1;z=z1;let x1=x*Math.cos(ry)+z*Math.sin(ry),z2=-x*Math.sin(ry)+z*Math.cos(ry);x=x1;z=z2;let x2=x*Math.cos(rz)-y*Math.sin(rz),y2=x*Math.sin(rz)+y*Math.cos(rz);return[x2,y2,z];}
+
+function drawBG(W,H,ts,col){
+    initBG();const sp=+($('spd')?.value||1);
+    ctx.fillStyle='#06060a';ctx.fillRect(0,0,W,H);
+    // grid
+    if(S.feat.grid){BG.gridZ=(BG.gridZ+.8*sp)%40;ctx.strokeStyle=col+'25';ctx.lineWidth=1;const vY=H*.35;
+    for(let i=0;i<18;i++){const t=(i+BG.gridZ/40)/18,y=vY+(H-vY)*Math.pow(t,1.5),sp2=.1+t*1.8;ctx.globalAlpha=t*.4;ctx.beginPath();ctx.moveTo(W/2-W*sp2,y);ctx.lineTo(W/2+W*sp2,y);ctx.stroke();}
+    for(let i=-7;i<=7;i++){ctx.globalAlpha=.15;ctx.beginPath();ctx.moveTo(W/2+i*12,vY);ctx.lineTo(W/2+i*80,H);ctx.stroke();}ctx.globalAlpha=1;}
+    // shapes
+    for(const sh of BG.shapes){sh.rx+=sh.drx*sp;sh.ry+=sh.dry*sp;sh.rz+=sh.drz*sp;sh.px+=sh.dx*sp;sh.py+=sh.dy*sp;
+    if(sh.px>W*.6)sh.dx=-Math.abs(sh.dx);if(sh.px<-W*.6)sh.dx=Math.abs(sh.dx);
+    if(sh.py>H*.5)sh.dy=-Math.abs(sh.dy);if(sh.py<-H*.5)sh.dy=Math.abs(sh.dy);
+    const pts=sh.v.map(v=>{const r=rot(v,sh.rx,sh.ry,sh.rz);return proj(r[0]+sh.px,r[1]+sh.py,r[2]+sh.pz,W,H);});
+    ctx.strokeStyle=sh.col;ctx.lineWidth=1.2;ctx.globalAlpha=sh.a;
+    for(const[a,b]of sh.e){if(!pts[a]||!pts[b])continue;ctx.beginPath();ctx.moveTo(pts[a].x,pts[a].y);ctx.lineTo(pts[b].x,pts[b].y);ctx.stroke();}
+    ctx.fillStyle=sh.col;for(const p of pts){ctx.beginPath();ctx.arc(p.x,p.y,1.5*p.s,0,Math.PI*2);ctx.fill();}}
+    ctx.globalAlpha=1;
+    // glitch
+    if(S.feat.glitch){BG.glitchT++;if(BG.glitchT>60+Math.random()*120){BG.glitchT=0;BG.glitchLines=[];for(let i=0;i<1+Math.floor(Math.random()*4);i++)BG.glitchLines.push({y:Math.random()*H,h:1+Math.random()*4,o:(Math.random()-.5)*20,l:3+Math.floor(Math.random()*8),c:NEON[Math.floor(Math.random()*NEON.length)]});}
+    for(let i=BG.glitchLines.length-1;i>=0;i--){const g=BG.glitchLines[i];g.l--;if(g.l<=0){BG.glitchLines.splice(i,1);continue;}ctx.globalAlpha=.6;ctx.fillStyle=g.c+'40';ctx.fillRect(0,g.y,W,g.h);if(Math.random()>.5){ctx.fillStyle=g.c+'20';ctx.fillRect(g.o,g.y-1,W*.3,g.h+2);}}ctx.globalAlpha=1;}
+    // scanlines
+    if(S.feat.scan){BG.scanOff=(BG.scanOff+.5)%4;ctx.fillStyle='rgba(0,0,0,0.08)';for(let y=BG.scanOff;y<H;y+=4)ctx.fillRect(0,y,W,1.5);}
+    // vignette
+    BG.neonP+=.015;const pa=.03+Math.sin(BG.neonP)*.02;const vg=ctx.createRadialGradient(W/2,H/2,W*.15,W/2,H/2,W*.55);
+    vg.addColorStop(0,'transparent');vg.addColorStop(1,col+Math.round(pa*255).toString(16).padStart(2,'0'));ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
+}
+
+// ── main render ──
+function render(ts){
+    const W=cv.width,H=cv.height;
+    ctx.clearRect(0,0,W,H);
+
+    const t=.05;
+    curE.ew=lerp(curE.ew,tgtE.ew,t);curE.by=lerp(curE.by,tgtE.by,t);curE.mc=lerp(curE.mc,tgtE.mc,t);curE.mo=lerp(curE.mo,tgtE.mo,t);
+    curM.o=lerp(curM.o,tgtM.o,.15);curM.w=lerp(curM.w,tgtM.w,.15);curM.s=lerp(curM.s,tgtM.s,.15);
+
+    breathP+=.02;const bOff=S.feat.breath?Math.sin(breathP)*2:0;
+    if(S.feat.sway){swayX=lerp(swayX,Math.sin(ts*.0003)*4,.01);swayY=lerp(swayY,Math.cos(ts*.0005)*3,.01);}
+    if(S.feat.blink){blinkT+=16;const iv=+$('blI').value;if(!blinking&&blinkT>iv+Math.random()*1000){blinking=true;blinkP=0;blinkT=0;}if(blinking){blinkP+=.15;if(blinkP>=Math.PI){blinking=false;blinkP=0;}}}
+
+    // background
+    if(S.feat.bg)drawBG(W,H,ts,tgtE.col||'#00ffff');
+    else{ctx.fillStyle='#06060a';ctx.fillRect(0,0,W,H);}
+
+    if(S.img&&S.baseLM){
+        // ── MESH WARP rendering ──
+        const scale=+$('hsc').value;
+        const iw=S.img.naturalWidth,ih=S.img.naturalHeight;
+        const asp=iw/ih;let dw,dh;
+        if(asp>1){dw=W*scale;dh=dw/asp;}else{dh=H*scale;dw=dh*asp;}
+        const dx=(W-dw)/2+swayX,dy=(H-dh)/2+swayY+bOff;
+
+        const animLM=animateLandmarks();
+
+        // draw each triangle with affine warp
+        for(const tri of FACE_TRIS){
+            drawTriangle(S.baseLM,animLM,tri,S.img,iw,ih,dw,dh,dx,dy);
+        }
+
+        // debug: show mesh wireframe
+        if(S.showMesh){
+            ctx.strokeStyle='#00ff4130';ctx.lineWidth=.5;
+            for(const[a,b,c]of FACE_TRIS){
+                if(!animLM[a]||!animLM[b]||!animLM[c])continue;
+                ctx.beginPath();
+                ctx.moveTo(dx+animLM[a].x*dw,dy+animLM[a].y*dh);
+                ctx.lineTo(dx+animLM[b].x*dw,dy+animLM[b].y*dh);
+                ctx.lineTo(dx+animLM[c].x*dw,dy+animLM[c].y*dh);
+                ctx.closePath();ctx.stroke();
+            }
+        }
+        // debug: show landmarks
+        if(S.showLM){
+            ctx.fillStyle='#ff006640';
+            for(const p of animLM){ctx.beginPath();ctx.arc(dx+p.x*dw,dy+p.y*dh,2,0,Math.PI*2);ctx.fill();}
+        }
+
+    }else if(S.img){
+        // image loaded but no face detected — draw image raw
+        const scale=+$('hsc').value;const iw=S.img.naturalWidth,ih=S.img.naturalHeight;
+        const asp=iw/ih;let dw,dh;
+        if(asp>1){dw=W*scale;dh=dw/asp;}else{dh=H*scale;dw=dh*asp;}
+        ctx.drawImage(S.img,(W-dw)/2+swayX,(H-dh)/2+swayY+bOff,dw,dh);
+    }else{
+        // no image
+        ctx.fillStyle='#a0a3b160';ctx.font='13px sans-serif';ctx.textAlign='center';
+        ctx.fillText('Upload an avatar image to begin',W/2,H/2);
+    }
+
+    // scanline overlay on top of everything
+    if(S.feat.scan){ctx.fillStyle='rgba(0,0,0,0.04)';for(let y=BG.scanOff;y<H;y+=3)ctx.fillRect(0,y,W,1);}
+
+    // FPS
+    S.fc++;const now=Date.now();if(now-S.fpsT>=1000){$('fps').textContent=S.fc+' FPS';S.fc=0;S.fpsT=now;}
+    if(S.run)S.aid=requestAnimationFrame(render);
+}
+
+// ── controls ──
+window.start=function(){if(S.run)return;S.run=true;$('sR').classList.add('on');log('Started');S.aid=requestAnimationFrame(render);};
+window.stop=function(){S.run=false;if(S.aid)cancelAnimationFrame(S.aid);$('sR').classList.remove('on');log('Stopped');};
+
+function setEmo(e){S.emo=e;tgtE={...EMO[e]||EMO.neutral};document.querySelectorAll('.eb').forEach(b=>b.classList.toggle('a',b.dataset.e===e));$('sE').classList.add('on');log('Emotion: '+e);}
+function setVis(v){S.vis=v;tgtM={...VIS[v]||VIS.rest};document.querySelectorAll('.vb').forEach(b=>b.classList.toggle('a',b.dataset.v===v));$('sL').classList.add('on');log('Viseme: '+v);}
+window.setEmo=setEmo;window.setVis=setVis;
+
+window.testLip=function(){
+    const p=$('phr').value;if(!p)return;log('Lip sync: "'+p+'"');
+    const vm={a:'aa',e:'ee',i:'ih',o:'oh',u:'oo',m:'mm',f:'ff',v:'ff',t:'th',d:'th',s:'ss',z:'ss'};
+    let d=0;for(const c of p.toLowerCase()){const vis=vm[c]||'rest';setTimeout(()=>{tgtM={...VIS[vis]||VIS.rest};},d);d+=80;}
+    setTimeout(()=>{tgtM={...VIS.rest};$('sL').classList.remove('on');},d+200);
+};
+
+log('Loading MediaPipe Face Landmarker + vector background...');
+</script>
+</body>
+</html>

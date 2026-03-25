@@ -1,0 +1,3 @@
+[submodule "lib/mhh-ei"]
+	path = lib/mhh-ei
+	url = https://github.com/Sanmarcsoft/MHH-EI-for-AI-Language-Enabled-Emotional-Intelligence-and-Theory-of-Mind-Algorithms.git
