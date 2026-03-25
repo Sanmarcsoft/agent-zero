@@ -10,4 +10,4 @@ set -e
 # ─── SanMarcSoft additions ───
 
 # mcp2cli — token-efficient MCP server access for all agents
-pip install mcp2cli && ln -sf /opt/venv/bin/mcp2cli /usr/local/bin/mcp2cli
+/opt/venv/bin/pip install mcp2cli && ln -sf /opt/venv/bin/mcp2cli /usr/local/bin/mcp2cli
