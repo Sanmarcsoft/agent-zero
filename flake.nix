@@ -64,7 +64,6 @@
                 "python/tools/ei_profile_image.py"
                 "python/tools/user_identity_manager.py"
                 "python/tools/avatar_generate.py"
-                "python/tools/voice_interjection.py"
                 "python/tools/service_health.py"
                 # EI helpers and API
                 "python/helpers/ei_chromadb_setup.py"
@@ -81,7 +80,6 @@
                 "prompts/agent.system.tool.ei_profile_image.md"
                 "prompts/agent.system.tool.user_identity.md"
                 "prompts/agent.system.tool.avatar_generate.md"
-                "prompts/agent.system.tool.voice_interjection.md"
                 "prompts/agent.system.tool.service_health.md"
                 # EI agent and knowledge
                 "agents/emotional-analyst"

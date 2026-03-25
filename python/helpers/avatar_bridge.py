@@ -86,7 +86,10 @@ class AvatarBridge:
         if not text or not text.strip():
             raise ValueError("Cannot synthesize empty text")
 
-        url = f"{self.tts_url.rstrip('/')}/audio/speech"
+        # Handle TTS_URL being either a base URL (http://host/v1) or full
+        # endpoint (http://host/v1/audio/speech) — avoid double-path.
+        base = self.tts_url.rstrip("/")
+        url = base if base.endswith("/audio/speech") else f"{base}/audio/speech"
         headers = {"Content-Type": "application/json"}
         clean_text = text.strip()
 

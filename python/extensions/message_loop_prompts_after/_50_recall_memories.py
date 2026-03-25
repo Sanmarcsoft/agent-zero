@@ -1,14 +1,30 @@
 import asyncio
+import re
 from python.helpers.extension import Extension
 from python.helpers.memory import Memory
 from agent import LoopData
 from python.tools.memory_load import DEFAULT_THRESHOLD as DEFAULT_MEMORY_THRESHOLD
-from python.helpers import dirty_json, errors, settings, log 
+from python.helpers import dirty_json, errors, settings, log
 
 
 DATA_NAME_TASK = "_recall_memories_task"
 DATA_NAME_ITER = "_recall_memories_iter"
 SEARCH_TIMEOUT = 30
+
+# Regex patterns for sanitizing memory recall queries
+_HTML_TAG_RE = re.compile(r"<[^>]{1,500}>", re.DOTALL)
+_BASE64_BLOCK_RE = re.compile(r"[A-Za-z0-9+/]{100,}={0,2}")
+_WHITESPACE_COLLAPSE_RE = re.compile(r"\s{3,}")
+
+
+def _sanitize_query(text: str, max_len: int = 4000) -> str:
+    """Strip HTML tags, base64 blobs, and excessive whitespace from a query
+    before sending to the embedding model. Prevents 400 errors when tool
+    responses inject large HTML error pages (e.g. Synology 502 pages)."""
+    text = _HTML_TAG_RE.sub(" ", text)
+    text = _BASE64_BLOCK_RE.sub(" ", text)
+    text = _WHITESPACE_COLLAPSE_RE.sub("\n", text)
+    return text.strip()[:max_len]
 
 
 class RecallMemories(Extension):
@@ -109,6 +125,9 @@ class RecallMemories(Extension):
         else:
             query = user_instruction + "\n\n" + history
 
+        # Sanitize: strip HTML tags, base64 blobs, and truncate
+        query = _sanitize_query(query)
+
         # if there is no query (or just dash by the LLM), do not continue
         if not query or len(query) <= 3:
             log_item.update(
@@ -119,21 +138,31 @@ class RecallMemories(Extension):
         # get memory database
         db = await Memory.get(self.agent)
 
-        # search for general memories and fragments
-        memories = await db.search_similarity_threshold(
-            query=query,
-            limit=set["memory_recall_memories_max_search"],
-            threshold=set["memory_recall_similarity_threshold"],
-            filter=f"area == '{Memory.Area.MAIN.value}' or area == '{Memory.Area.FRAGMENTS.value}'",  # exclude solutions
-        )
+        try:
+            # search for general memories and fragments
+            memories = await db.search_similarity_threshold(
+                query=query,
+                limit=set["memory_recall_memories_max_search"],
+                threshold=set["memory_recall_similarity_threshold"],
+                filter=f"area == '{Memory.Area.MAIN.value}' or area == '{Memory.Area.FRAGMENTS.value}'",  # exclude solutions
+            )
 
-        # search for solutions
-        solutions = await db.search_similarity_threshold(
-            query=query,
-            limit=set["memory_recall_solutions_max_search"],
-            threshold=set["memory_recall_similarity_threshold"],
-            filter=f"area == '{Memory.Area.SOLUTIONS.value}'",  # exclude solutions
-        )
+            # search for solutions
+            solutions = await db.search_similarity_threshold(
+                query=query,
+                limit=set["memory_recall_solutions_max_search"],
+                threshold=set["memory_recall_similarity_threshold"],
+                filter=f"area == '{Memory.Area.SOLUTIONS.value}'",  # exclude solutions
+            )
+        except Exception as e:
+            err = errors.format_error(e)
+            self.agent.context.log.log(
+                type="warning",
+                heading="Memory recall embedding failed, skipping",
+                content=err,
+            )
+            log_item.update(heading="Memory recall skipped (embedding error)")
+            return
 
         if not memories and not solutions:
             log_item.update(
