@@ -1,20 +1,20 @@
 {
-  "name": "Agent Zero",
-  "short_name": "Agent Zero",
-  "description": "Autonomous AI agent",
+  "name": "Q Branch",
+  "short_name": "Q Branch",
+  "description": "Q Branch Intelligence Platform",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1a1a1a",
-  "theme_color": "#333333",
+  "background_color": "#0a0a0a",
+  "theme_color": "#c5a55a",
   "icons": [
     {
-      "src": "/public/icon-maskable.svg",
+      "src": "/public/q-logo.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "maskable"
     },
     {
-      "src": "/public/icon.svg",
+      "src": "/public/q-favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"

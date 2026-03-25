@@ -6,3 +6,8 @@ set -e
 
 # searxng - moved to base image
 # bash /ins/install_searxng.sh "$@"
+
+# ─── SanMarcSoft additions ───
+
+# mcp2cli — token-efficient MCP server access for all agents
+pip install mcp2cli && ln -sf /opt/venv/bin/mcp2cli /usr/local/bin/mcp2cli

@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q Branch — EI Metrics Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg: #0f1117; --bg2: #1a1d27; --bg3: #252836;
+            --text: #e4e6eb; --text2: #a0a3b1; --accent: #6366f1;
+            --border: #2d3042;
+            --green: #22c55e; --yellow: #f59e0b; --red: #ef4444;
+            --blue: #3b82f6; --purple: #8b5cf6; --pink: #ec4899;
+            --cyan: #06b6d4; --orange: #f97316;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+
+        .header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; gap: 16px; }
+        .header h1 { font-size: 18px; font-weight: 600; }
+        .header .badge { background: var(--accent); color: white; padding: 2px 10px; border-radius: 12px; font-size: 11px; }
+        .header .back { color: var(--text2); text-decoration: none; font-size: 13px; margin-left: auto; }
+        .header .back:hover { color: var(--accent); }
+
+        .controls { padding: 12px 24px; background: var(--bg2); border-bottom: 1px solid var(--border); display: flex; gap: 12px; align-items: center; }
+        .controls select, .controls button { background: var(--bg3); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+        .controls button:hover { border-color: var(--accent); }
+        .controls button.primary { background: var(--accent); border-color: var(--accent); color: white; }
+        .status { margin-left: auto; font-size: 12px; color: var(--text2); }
+        .status .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+        .status .dot.ok { background: var(--green); }
+        .status .dot.err { background: var(--red); }
+
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 20px 24px; }
+        @media (max-width: 1200px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+
+        .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+        .card.span2 { grid-column: span 2; }
+        .card.span3 { grid-column: span 3; }
+        .card.span4 { grid-column: span 4; }
+        .card h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text2); margin-bottom: 12px; }
+
+        .big-num { font-size: 36px; font-weight: 700; line-height: 1; }
+        .big-label { font-size: 12px; color: var(--text2); margin-top: 4px; }
+
+        .stat-row { display: flex; gap: 24px; margin-top: 8px; }
+        .stat { text-align: center; }
+        .stat .val { font-size: 22px; font-weight: 600; }
+        .stat .lbl { font-size: 11px; color: var(--text2); }
+
+        .chart-wrap { position: relative; height: 220px; }
+        .chart-wrap.tall { height: 300px; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); color: var(--text2); font-weight: 500; font-size: 11px; text-transform: uppercase; }
+        td { padding: 6px 8px; border-bottom: 1px solid var(--border); }
+        tr:hover td { background: var(--bg3); }
+
+        .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+        .pill.fear { background: rgba(139,92,246,0.2); color: #a78bfa; }
+        .pill.anger { background: rgba(239,68,68,0.2); color: #f87171; }
+        .pill.sadness { background: rgba(59,130,246,0.2); color: #60a5fa; }
+        .pill.happiness { background: rgba(34,197,94,0.2); color: #4ade80; }
+        .pill.worry { background: rgba(168,85,247,0.2); color: #c084fc; }
+        .pill.disgust { background: rgba(132,204,22,0.2); color: #a3e635; }
+        .pill.pride { background: rgba(245,158,11,0.2); color: #fbbf24; }
+        .pill.shame { background: rgba(120,113,108,0.2); color: #a8a29e; }
+        .pill.surprise { background: rgba(6,182,212,0.2); color: #22d3ee; }
+        .pill.love { background: rgba(236,72,153,0.2); color: #f472b6; }
+        .pill.curiosity { background: rgba(20,184,166,0.2); color: #2dd4bf; }
+
+        .severity-bar { display: flex; gap: 2px; align-items: center; }
+        .severity-bar .dot { width: 10px; height: 10px; border-radius: 2px; }
+        .severity-bar .dot.on { background: var(--accent); }
+        .severity-bar .dot.off { background: var(--bg3); }
+
+        .quad-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .quad-cell { background: var(--bg3); border-radius: 8px; padding: 12px; text-align: center; }
+        .quad-cell .name { font-size: 11px; color: var(--text2); text-transform: uppercase; margin-bottom: 4px; }
+        .quad-cell .count { font-size: 24px; font-weight: 600; }
+        .quad-cell .avgp { font-size: 11px; color: var(--accent); }
+
+        .empty { text-align: center; padding: 40px; color: var(--text2); }
+        .empty .icon { font-size: 48px; opacity: 0.3; margin-bottom: 12px; }
+
+        .loading { text-align: center; padding: 40px; color: var(--text2); }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>EI Metrics Dashboard</h1>
+    <span class="badge">MHH-EI</span>
+    <span class="badge" style="background:var(--green)">Webb Equation</span>
+    <a href="/" class="back">&larr; Agent Zero</a>
+</div>
+
+<div class="controls">
+    <label style="font-size:13px;color:var(--text2)">User:</label>
+    <select id="userSelect"><option value="">All Users</option></select>
+    <button class="primary" onclick="loadData()">Refresh</button>
+    <button onclick="loadData('self_map')">Self Map</button>
+    <button onclick="loadData('emotion_log')">Emotions</button>
+    <button onclick="loadData('tom_profiles')">ToM</button>
+    <div class="status" id="connStatus"><span class="dot"></span>Loading...</div>
+</div>
+
+<div class="grid" id="dashboard">
+    <div class="card span4 loading">Loading EI metrics from ChromaDB...</div>
+</div>
+
+<script>
+const EMOTION_COLORS = {
+    happiness: '#22c55e', sadness: '#3b82f6', anger: '#ef4444', fear: '#8b5cf6',
+    worry: '#a855f7', disgust: '#84cc16', pride: '#f59e0b', shame: '#78716c',
+    surprise: '#06b6d4', love: '#ec4899', curiosity: '#14b8a6', embarrassment: '#fb923c',
+    stress: '#dc2626', relief: '#34d399', envy: '#16a34a', boredom: '#6b7280',
+    confusion: '#fbbf24', positive_anticipation: '#a3e635', negative_anticipation: '#f87171',
+    positive_rumination: '#86efac', negative_rumination: '#fca5a5', flattery: '#f9a8d4',
+};
+
+let charts = {};
+
+function destroyCharts() {
+    Object.values(charts).forEach(c => c.destroy());
+    charts = {};
+}
+
+async function loadData(section = 'all') {
+    const userId = document.getElementById('userSelect').value;
+    const status = document.getElementById('connStatus');
+    status.innerHTML = '<span class="dot"></span>Fetching...';
+
+    try {
+        const resp = await fetch('/ei_metrics', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCsrfToken(),
+            },
+            body: JSON.stringify({ section, user_id: userId }),
+        });
+        const data = await resp.json();
+
+        if (data.error) {
+            status.innerHTML = `<span class="dot err"></span>${data.error}`;
+            return;
+        }
+
+        status.innerHTML = '<span class="dot ok"></span>Connected';
+        destroyCharts();
+        renderDashboard(data, section);
+
+        // Populate user dropdown
+        if (data.overview && data.overview.unique_users) {
+            const sel = document.getElementById('userSelect');
+            const current = sel.value;
+            sel.innerHTML = '<option value="">All Users</option>';
+            data.overview.unique_users.forEach(u => {
+                sel.innerHTML += `<option value="${u}" ${u === current ? 'selected' : ''}>${u}</option>`;
+            });
+        }
+    } catch (e) {
+        status.innerHTML = `<span class="dot err"></span>Error: ${e.message}`;
+    }
+}
+
+function getCsrfToken() {
+    const name = 'csrf_token_';
+    const cookies = document.cookie.split(';');
+    for (const c of cookies) {
+        const trimmed = c.trim();
+        if (trimmed.startsWith(name)) return trimmed.substring(name.length + trimmed.indexOf('=') - trimmed.indexOf(name) + 1).split('=').pop();
+    }
+    return '';
+}
+
+function renderDashboard(data, section) {
+    const grid = document.getElementById('dashboard');
+    let html = '';
+
+    // Overview cards
+    if (data.overview) {
+        const o = data.overview;
+        html += `
+        <div class="card"><div class="big-num" style="color:var(--accent)">${o.self_map_items}</div><div class="big-label">{self} Map Items</div></div>
+        <div class="card"><div class="big-num" style="color:var(--orange)">${o.emotion_events}</div><div class="big-label">Webb Equations</div></div>
+        <div class="card"><div class="big-num" style="color:var(--cyan)">${o.tom_profiles}</div><div class="big-label">ToM Profiles</div></div>
+        <div class="card"><div class="big-num" style="color:${o.collections_healthy ? 'var(--green)' : 'var(--red)'}">${o.collections_healthy ? 'OK' : 'ERR'}</div><div class="big-label">ChromaDB Status</div></div>`;
+    }
+
+    // Self Map
+    if (data.self_map) {
+        const sm = data.self_map;
+        if (sm.total === 0) {
+            html += `<div class="card span2"><h3>{self} Map</h3><div class="empty"><div class="icon">&#x1F9E0;</div><p>No {self} map data yet. Start a conversation with emotional content.</p></div></div>`;
+        } else {
+            html += `<div class="card span2"><h3>{self} Map — Quadrants (${sm.total} items)</h3><div class="quad-grid">`;
+            for (const q of ['people', 'accomplishments', 'life_story', 'ideas_likes']) {
+                const s = sm.quadrants[q] || { count: 0, avg_power: 0, max_power: 0 };
+                html += `<div class="quad-cell"><div class="name">${q.replace('_', ' ')}</div><div class="count">${s.count}</div><div class="avgp">avg power: ${s.avg_power} / max: ${s.max_power}</div></div>`;
+            }
+            html += `</div></div>`;
+
+            // Power distribution chart
+            html += `<div class="card"><h3>Power Distribution</h3><div class="chart-wrap"><canvas id="powerChart"></canvas></div></div>`;
+
+            // Valence pie
+            html += `<div class="card"><h3>Valence</h3><div class="chart-wrap"><canvas id="valenceChart"></canvas></div></div>`;
+
+            // Top items table
+            if (sm.top_items && sm.top_items.length) {
+                html += `<div class="card span4"><h3>Top {self} Map Items by Power</h3><table><tr><th>Label</th><th>Quadrant</th><th>Power</th><th>Valence</th><th>Source</th></tr>`;
+                sm.top_items.forEach(item => {
+                    const vColor = item.valence > 0 ? 'var(--green)' : item.valence < 0 ? 'var(--red)' : 'var(--text2)';
+                    html += `<tr><td><strong>${item.label}</strong></td><td>${item.quadrant.replace('_',' ')}</td><td>${renderSeverityDots(item.power_level, 10)}</td><td style="color:${vColor}">${item.valence > 0 ? '+' : ''}${item.valence}</td><td>${item.source}</td></tr>`;
+                });
+                html += `</table></div>`;
+            }
+        }
+    }
+
+    // Emotion Log
+    if (data.emotion_log) {
+        const el = data.emotion_log;
+        if (el.total === 0) {
+            html += `<div class="card span2"><h3>Emotion Log</h3><div class="empty"><div class="icon">&#x1F4CA;</div><p>No Webb Equations recorded yet.</p></div></div>`;
+        } else {
+            // Emotion group distribution chart
+            html += `<div class="card span2"><h3>Emotion Group Distribution (${el.total} events, avg severity ${el.avg_severity})</h3><div class="chart-wrap"><canvas id="emotionGroupChart"></canvas></div></div>`;
+
+            // Severity distribution chart
+            html += `<div class="card"><h3>Severity Distribution</h3><div class="chart-wrap"><canvas id="severityChart"></canvas></div></div>`;
+
+            // Source distribution
+            html += `<div class="card"><h3>Perception Sources</h3><div class="chart-wrap"><canvas id="sourceChart"></canvas></div></div>`;
+
+            // Timeline chart
+            if (el.timeline && el.timeline.length > 1) {
+                html += `<div class="card span4"><h3>Emotion Timeline</h3><div class="chart-wrap tall"><canvas id="timelineChart"></canvas></div></div>`;
+            }
+
+            // Recent events table
+            if (el.recent && el.recent.length) {
+                html += `<div class="card span4"><h3>Recent Webb Equations</h3><table><tr><th>Time</th><th>Perception</th><th>Group</th><th>Severity</th><th>Affected</th></tr>`;
+                el.recent.forEach(ev => {
+                    const time = ev.timestamp ? new Date(ev.timestamp).toLocaleString() : '';
+                    html += `<tr><td style="font-size:11px;white-space:nowrap">${time}</td><td>${ev.perception}</td><td><span class="pill ${ev.emotion_group}">${ev.emotion_group}</span></td><td>${renderSeverityDots(ev.severity, 5)}</td><td>${ev.affected_item || '-'}</td></tr>`;
+                });
+                html += `</table></div>`;
+            }
+        }
+    }
+
+    // ToM Profiles
+    if (data.tom_profiles) {
+        const tp = data.tom_profiles;
+        if (tp.total === 0) {
+            html += `<div class="card span2"><h3>Theory of Mind</h3><div class="empty"><div class="icon">&#x1F9D1;&#x200D;&#x1F91D;&#x200D;&#x1F9D1;</div><p>No ToM profiles yet. Ask Q about how someone else feels.</p></div></div>`;
+        } else {
+            html += `<div class="card span2"><h3>Theory of Mind (${tp.total} profiles, ${tp.analyses} analyses)</h3><table><tr><th>Person</th><th>Relationship</th><th>Attachments</th><th>Created</th></tr>`;
+            tp.profiles.forEach(p => {
+                const date = p.created_at ? new Date(p.created_at).toLocaleDateString() : '';
+                html += `<tr><td><strong>${p.person_name}</strong></td><td>${p.relationship || '-'}</td><td>${p.attachment_count}</td><td>${date}</td></tr>`;
+            });
+            html += `</table></div>`;
+        }
+    }
+
+    // Trends
+    if (data.trends && data.trends.daily_event_count && Object.keys(data.trends.daily_event_count).length > 1) {
+        html += `<div class="card span4"><h3>Daily Emotion Event Volume</h3><div class="chart-wrap"><canvas id="dailyChart"></canvas></div></div>`;
+    }
+
+    grid.innerHTML = html;
+
+    // Render charts after DOM update
+    requestAnimationFrame(() => renderCharts(data));
+}
+
+function renderSeverityDots(value, max) {
+    let html = '<div class="severity-bar">';
+    for (let i = 1; i <= max; i++) {
+        html += `<div class="dot ${i <= value ? 'on' : 'off'}"></div>`;
+    }
+    html += '</div>';
+    return html;
+}
+
+function renderCharts(data) {
+    const opts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#a0a3b1', font: { size: 11 } } } }, scales: {} };
+    const scaleOpts = { ticks: { color: '#a0a3b1' }, grid: { color: '#2d3042' } };
+
+    // Power distribution
+    if (data.self_map && data.self_map.power_distribution) {
+        const pd = data.self_map.power_distribution;
+        const el = document.getElementById('powerChart');
+        if (el) {
+            charts.power = new Chart(el, {
+                type: 'bar',
+                data: { labels: Object.keys(pd), datasets: [{ label: 'Items', data: Object.values(pd), backgroundColor: '#6366f1' }] },
+                options: { ...opts, scales: { x: { ...scaleOpts, title: { display: true, text: 'Power Level', color: '#a0a3b1' } }, y: { ...scaleOpts, beginAtZero: true } }, plugins: { legend: { display: false } } },
+            });
+        }
+    }
+
+    // Valence pie
+    if (data.self_map && data.self_map.valence_distribution) {
+        const vd = data.self_map.valence_distribution;
+        const el = document.getElementById('valenceChart');
+        if (el) {
+            charts.valence = new Chart(el, {
+                type: 'doughnut',
+                data: { labels: ['Positive', 'Negative', 'Neutral'], datasets: [{ data: [vd.positive, vd.negative, vd.neutral], backgroundColor: ['#22c55e', '#ef4444', '#6b7280'] }] },
+                options: { ...opts },
+            });
+        }
+    }
+
+    // Emotion group chart
+    if (data.emotion_log && data.emotion_log.groups) {
+        const groups = data.emotion_log.groups;
+        const el = document.getElementById('emotionGroupChart');
+        if (el) {
+            const labels = Object.keys(groups);
+            const colors = labels.map(l => EMOTION_COLORS[l] || '#6b7280');
+            charts.emotionGroup = new Chart(el, {
+                type: 'bar',
+                data: { labels, datasets: [{ label: 'Events', data: Object.values(groups), backgroundColor: colors }] },
+                options: { ...opts, indexAxis: 'y', scales: { x: { ...scaleOpts, beginAtZero: true }, y: scaleOpts }, plugins: { legend: { display: false } } },
+            });
+        }
+    }
+
+    // Severity chart
+    if (data.emotion_log && data.emotion_log.severities) {
+        const sv = data.emotion_log.severities;
+        const el = document.getElementById('severityChart');
+        if (el) {
+            const colors = ['#22c55e', '#84cc16', '#f59e0b', '#f97316', '#ef4444'];
+            charts.severity = new Chart(el, {
+                type: 'doughnut',
+                data: { labels: Object.keys(sv).map(s => `Level ${s}`), datasets: [{ data: Object.values(sv), backgroundColor: Object.keys(sv).map((_, i) => colors[i] || '#6b7280') }] },
+                options: { ...opts },
+            });
+        }
+    }
+
+    // Source chart
+    if (data.emotion_log && data.emotion_log.sources) {
+        const src = data.emotion_log.sources;
+        const el = document.getElementById('sourceChart');
+        if (el) {
+            charts.source = new Chart(el, {
+                type: 'doughnut',
+                data: { labels: Object.keys(src), datasets: [{ data: Object.values(src), backgroundColor: ['#6366f1', '#f59e0b', '#22c55e', '#ef4444'] }] },
+                options: { ...opts },
+            });
+        }
+    }
+
+    // Timeline scatter
+    if (data.emotion_log && data.emotion_log.timeline && data.emotion_log.timeline.length > 1) {
+        const el = document.getElementById('timelineChart');
+        if (el) {
+            const points = data.emotion_log.timeline.map(t => ({
+                x: new Date(t.timestamp),
+                y: t.severity,
+                group: t.group,
+            }));
+            // Group by emotion
+            const byGroup = {};
+            points.forEach(p => {
+                byGroup[p.group] = byGroup[p.group] || [];
+                byGroup[p.group].push(p);
+            });
+            const datasets = Object.entries(byGroup).map(([group, pts]) => ({
+                label: group,
+                data: pts.map(p => ({ x: p.x, y: p.y })),
+                backgroundColor: EMOTION_COLORS[group] || '#6b7280',
+                pointRadius: 6,
+            }));
+            charts.timeline = new Chart(el, {
+                type: 'scatter',
+                data: { datasets },
+                options: { ...opts, scales: { x: { ...scaleOpts, type: 'time', time: { unit: 'hour' } }, y: { ...scaleOpts, beginAtZero: true, max: 6, title: { display: true, text: 'Severity', color: '#a0a3b1' } } } },
+            });
+        }
+    }
+
+    // Daily volume
+    if (data.trends && data.trends.daily_event_count) {
+        const dc = data.trends.daily_event_count;
+        const el = document.getElementById('dailyChart');
+        if (el && Object.keys(dc).length > 1) {
+            charts.daily = new Chart(el, {
+                type: 'line',
+                data: { labels: Object.keys(dc), datasets: [{ label: 'Emotion Events', data: Object.values(dc), borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.1)', fill: true, tension: 0.3 }] },
+                options: { ...opts, scales: { x: scaleOpts, y: { ...scaleOpts, beginAtZero: true } } },
+            });
+        }
+    }
+}
+
+// Auto-load on page ready
+loadData();
+// Auto-refresh every 30 seconds
+setInterval(() => loadData(), 30000);
+</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="960" height="960" viewBox="0 0 960 960" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#d4af37"/>
+      <stop offset="50%" style="stop-color:#c5a55a"/>
+      <stop offset="100%" style="stop-color:#b8962e"/>
+    </linearGradient>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#0d1b2a"/>
+      <stop offset="100%" style="stop-color:#0a0a0a"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="960" height="960" rx="160" fill="url(#bgGrad)"/>
+  <!-- Q letter — outer ring -->
+  <circle cx="480" cy="440" r="260" fill="none" stroke="url(#goldGrad)" stroke-width="56"/>
+  <!-- Q tail — diagonal slash -->
+  <line x1="580" y1="600" x2="760" y2="820" stroke="url(#goldGrad)" stroke-width="56" stroke-linecap="round"/>
+  <!-- Inner crosshair — horizontal -->
+  <line x1="340" y1="440" x2="620" y2="440" stroke="url(#goldGrad)" stroke-width="6" opacity="0.4"/>
+  <!-- Inner crosshair — vertical -->
+  <line x1="480" y1="300" x2="480" y2="580" stroke="url(#goldGrad)" stroke-width="6" opacity="0.4"/>
+  <!-- Center dot — targeting reticle -->
+  <circle cx="480" cy="440" r="12" fill="#c5a55a" opacity="0.6"/>
+</svg>

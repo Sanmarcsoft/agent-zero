@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="960" height="960" viewBox="0 0 960 960" xmlns="http://www.w3.org/2000/svg">
+  <!-- Large Q outline for watermark use -->
+  <circle cx="480" cy="420" r="320" fill="none" stroke="white" stroke-width="40"/>
+  <line x1="600" y1="620" x2="840" y2="900" stroke="white" stroke-width="40" stroke-linecap="round"/>
+</svg>
