@@ -382,6 +382,7 @@ class Agent:
 
     async def monologue(self):
         error_retries = 0  # counter for critical error retries
+        misformat_retries = 0  # counter for consecutive JSON format errors
         while True:
             try:
                 # loop data dictionary to pass to extensions
@@ -489,7 +490,26 @@ class Agent:
                             # process tools requested in agent message
                             tools_result = await self.process_tools(agent_response)
                             if tools_result:  # final response of message loop available
+                                misformat_retries = 0  # reset on successful tool execution
                                 return tools_result  # break the execution if the task is done
+                            else:
+                                # track consecutive misformat failures to prevent infinite loops
+                                misformat_retries += 1
+                                max_misformat = 5
+                                if misformat_retries >= max_misformat:
+                                    PrintStyle(font_color="red", padding=True).print(
+                                        f"Agent exceeded {max_misformat} consecutive message format failures. Breaking loop."
+                                    )
+                                    self.context.log.log(
+                                        type="error",
+                                        content=f"{self.agent_name}: Exceeded {max_misformat} consecutive misformat retries, breaking message loop.",
+                                    )
+                                    # Return a fallback response to prevent infinite loop
+                                    from python.helpers.tool import Response
+                                    return Response(
+                                        message="I encountered repeated formatting errors and could not complete the request. Please try rephrasing your message or check the model configuration.",
+                                        break_loop=True,
+                                    )
 
                         error_retries = 0  # reset retry counter on successful iteration
 
