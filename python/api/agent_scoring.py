@@ -42,7 +42,10 @@ class AgentScoring(ApiHandler):
 
     async def process(self, input: Input, request: Request) -> Output:
         if request.method == "GET":
-            return self._performance_report(input)
+            # For GET, merge query params into input (ApiHandler only parses JSON body)
+            get_input = dict(request.args)
+            get_input.update(input)
+            return self._performance_report(get_input)
         else:
             return self._record_task(input)
 
