@@ -90,11 +90,6 @@ class Settings(TypedDict):
     tts_percy_voice: str
     tts_percy_format: str
 
-    avatar_agent_name: str
-    avatar_voice: str
-    avatar_tts_url: str
-    avatar_image_data: str  # base64 data URL of face photo
-
     mcp_servers: str
     mcp_client_init_timeout: int
     mcp_client_tool_timeout: int
@@ -489,10 +484,6 @@ def get_default_settings() -> Settings:
         tts_percy_url=get_default_value("tts_percy_url", "http://10.0.0.96:8880"),
         tts_percy_voice=get_default_value("tts_percy_voice", "q"),
         tts_percy_format=get_default_value("tts_percy_format", "mp3"),
-        avatar_agent_name=get_default_value("avatar_agent_name", ""),
-        avatar_voice=get_default_value("avatar_voice", "q"),
-        avatar_tts_url=get_default_value("avatar_tts_url", "http://10.0.0.96:8880"),
-        avatar_image_data=get_default_value("avatar_image_data", ""),
         mcp_servers=get_default_value("mcp_servers", '{\n    "mcpServers": {}\n}'),
         mcp_client_init_timeout=get_default_value("mcp_client_init_timeout", 10),
         mcp_client_tool_timeout=get_default_value("mcp_client_tool_timeout", 120),
