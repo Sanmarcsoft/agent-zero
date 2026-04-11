@@ -8,8 +8,8 @@
 
 import time
 import re
-from python.helpers.extension import Extension
-from python.helpers.print_style import PrintStyle
+from helpers.extension import Extension
+from helpers.print_style import PrintStyle
 from agent import LoopData
 
 

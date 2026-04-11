@@ -5,7 +5,7 @@ import os
 import tempfile
 import httpx
 
-from python.helpers.tool import Tool, Response
+from helpers.tool import Tool, Response
 
 ECHOMIMIC_URL = os.environ.get("ECHOMIMIC_URL", "http://10.0.0.96:8090")
 

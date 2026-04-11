@@ -6,7 +6,7 @@ import asyncio
 import urllib.request
 import json
 
-from python.helpers.tool import Tool, Response
+from helpers.tool import Tool, Response
 
 
 SERVICES = {

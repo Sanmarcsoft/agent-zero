@@ -6,9 +6,9 @@ import os
 import time
 import traceback
 
-from python.helpers.tool import Tool, Response
-from python.helpers.avatar_bridge import AvatarBridge, EMOTION_TYPES
-from python.helpers.print_style import PrintStyle
+from helpers.tool import Tool, Response
+from helpers.avatar_bridge import AvatarBridge, EMOTION_TYPES
+from helpers.print_style import PrintStyle
 
 
 class AvatarAnimate(Tool):

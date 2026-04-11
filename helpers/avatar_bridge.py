@@ -21,7 +21,7 @@ from typing import Any
 
 import httpx
 
-from python.helpers.print_style import PrintStyle
+from helpers.print_style import PrintStyle
 
 # ── configuration ────────────────────────────────────────────────────────────
 

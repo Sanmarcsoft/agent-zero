@@ -10,8 +10,8 @@ from datetime import datetime, timezone
 import chromadb
 from langchain_core.documents import Document
 
-from python.helpers.tool import Tool, Response
-from python.helpers.memory import Memory
+from helpers.tool import Tool, Response
+from plugins._memory.helpers.memory import Memory
 
 EI_CHROMADB_HOST = os.environ.get("EI_CHROMADB_HOST", "10.0.0.12")
 EI_CHROMADB_PORT = int(os.environ.get("EI_CHROMADB_PORT", "18000"))

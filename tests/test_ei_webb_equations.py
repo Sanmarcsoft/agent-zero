@@ -32,7 +32,7 @@ for mod_name in [
         mock.HttpClient = lambda **kw: None
         sys.modules[mod_name] = mock
 
-from python.tools.emotional_analysis import (
+from tools.emotional_analysis import (
     compute_severity,
     select_emotion_group,
     EMOTION_GROUPS,

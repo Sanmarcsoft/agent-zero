@@ -7,8 +7,8 @@ import os
 import subprocess
 from datetime import datetime, timezone
 
-from python.helpers.tool import Tool, Response
-from python.helpers import files
+from helpers.tool import Tool, Response
+from helpers import files
 
 EI_IDENTITY_REPO_PATH = os.environ.get(
     "EI_IDENTITY_REPO_PATH",

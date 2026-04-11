@@ -1,6 +1,6 @@
 # Scoring Timer — records monologue start time for latency calculation
 import time
-from python.helpers.extension import Extension
+from helpers.extension import Extension
 from agent import LoopData
 
 

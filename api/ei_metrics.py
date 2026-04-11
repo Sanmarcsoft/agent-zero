@@ -9,7 +9,7 @@ import json
 from collections import Counter
 from datetime import datetime, timezone
 
-from python.helpers.api import ApiHandler, Input, Output
+from helpers.api import ApiHandler, Input, Output
 from flask import Request, Response
 
 EI_CHROMADB_HOST = os.environ.get("EI_CHROMADB_HOST", "10.0.0.12")

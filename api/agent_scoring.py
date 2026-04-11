@@ -11,7 +11,7 @@ import json
 import time
 from datetime import datetime, timezone
 
-from python.helpers.api import ApiHandler, Input, Output
+from helpers.api import ApiHandler, Input, Output
 from flask import Request, Response
 
 # In-memory task scoring history (persisted across requests, lost on restart)

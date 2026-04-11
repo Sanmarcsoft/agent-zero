@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 
 import chromadb
 
-from python.helpers.tool import Tool, Response
+from helpers.tool import Tool, Response
 
 EI_CHROMADB_HOST = os.environ.get("EI_CHROMADB_HOST", "10.0.0.12")
 EI_CHROMADB_PORT = int(os.environ.get("EI_CHROMADB_PORT", "18000"))

@@ -2,10 +2,10 @@
 # and Theory of Mind Algorithms" by Sean Webb (AGPL-3.0)
 # Webb Equation of Emotion: EP ∆ P = ER
 
-from python.helpers.extension import Extension
-from python.helpers.memory import Memory
+from helpers.extension import Extension
+from plugins._memory.helpers.memory import Memory
 from agent import LoopData
-from python.helpers import errors
+from helpers import errors
 
 
 class EIEmotionalContext(Extension):
