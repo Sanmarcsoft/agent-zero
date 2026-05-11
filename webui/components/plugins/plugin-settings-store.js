@@ -1,9 +1,9 @@
 import { createStore } from "/js/AlpineStore.js";
 import * as api from "/js/api.js";
+import { fetchApi } from "/js/api.js";
 import { showConfirmDialog } from "/js/confirmDialog.js";
 import { store as pluginToggleStore } from "/components/plugins/toggle/plugin-toggle-store.js";
 
-const fetchApi = globalThis.fetchApi;
 const justToast = globalThis.justToast;
 
 const model = {
@@ -19,6 +19,7 @@ const model = {
 
     // plugin settings data (plugins bind their fields here)
     settings: {},
+    wizardFooter: null,
 
     settingsSnapshotJson: "",
     previousProjectName: "",
@@ -34,6 +35,19 @@ const model = {
 
     get hasUnsavedChanges() {
         return this._toComparableJson(this.settings) !== (this.settingsSnapshotJson || "");
+    },
+
+    get pluginTitle() {
+        return (
+            this.pluginMeta?.display_name ||
+            this.pluginMeta?.name ||
+            this.pluginName ||
+            "Plugin"
+        );
+    },
+
+    get modalTitle() {
+        return `${this.pluginTitle} Settings`;
     },
 
     confirmDiscardUnsavedChanges() {
@@ -80,6 +94,7 @@ const model = {
         this.pluginMeta = pluginMeta || null;
         this.settings = {};
         this.settingsSnapshotJson = "";
+        this.wizardFooter = null;
         this.error = null;
         this.projectName = projectName;
         this.agentProfileKey = agentProfileKey;
@@ -373,6 +388,7 @@ const model = {
         this.agentProfileKey = "";
         this.settings = {};
         this.settingsSnapshotJson = "";
+        this.wizardFooter = null;
         this.previousProjectName = "";
         this.previousAgentProfileKey = "";
         this.loadedPath = "";

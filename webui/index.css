@@ -141,6 +141,7 @@ html {
 body {
   overscroll-behavior: none;
   -webkit-overscroll-behavior: none;
+  overflow-x: hidden;
 }
 
 x-extension:not(:empty) {
@@ -397,6 +398,8 @@ img {
   display: -webkit-flex;
   display: flex;
   height: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .panel {
@@ -412,9 +415,10 @@ img {
 #right-panel {
   display: -webkit-flex;
   display: flex;
-  width: 100%;
+  width: auto;
+  min-width: 0;
   flex-direction: column;
-  flex-grow: 1;
+  flex: 1 1 0;
   -webkit-transition: margin-left var(--transition-speed) ease-in-out;
   transition: margin-left var(--transition-speed) ease-in-out;
 }
@@ -481,7 +485,8 @@ div#right-panel::-webkit-scrollbar-thumb:hover {
 
 #time-date-container {
   z-index: 1000;
-  position: fixed;
+  position: absolute;
+  top: 0;
   right: var(--spacing-md);
   display: flex;
   align-items: center;
@@ -1334,7 +1339,7 @@ a:active {
 .settings-modal-title {
   margin-top: 0;
   margin-bottom: 24px;
-  font-size: 1.8rem;
+  font-size: 0.95rem;
   text-align: center;
   border-bottom: 1px solid var(--color-border);
   padding-bottom: 12px;

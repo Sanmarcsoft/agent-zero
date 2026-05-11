@@ -25,6 +25,9 @@ docker run -p 80:80 agent0ai/agent-zero
 
 Once the install completes, open the URL shown in your terminal to access the Web UI. Follow the prompts in the CLI to set your port and authentication, complete onboarding, add your API key, then continue to [Step 3: Configure Agent Zero](#step-3-configure-agent-zero).
 
+> [!TIP]
+> Prefer a terminal-native workflow too? Install the optional [A0 CLI Connector](../guides/a0-cli-connector.md) from GitHub, then run `a0` to connect to this Agent Zero instance from your terminal.
+
 ---
 
 ## How to Update Agent Zero
@@ -309,11 +312,13 @@ Agent Zero provides a comprehensive settings interface to customize various aspe
 - **Memory Subdirectory:** Select the subdirectory for agent memory storage, allowing separation between different instances.
 - **Knowledge Subdirectory:** Specify the location of custom knowledge files to enhance the agent's understanding.
 
+See the [Agent Profiles guide](../guides/agent-profiles.md) for profile file locations, `agent.yaml`, prompt overrides, and profile-specific Main/Utility model configuration.
+
 > [!NOTE]
 > Since v0.9.7, custom prompts belong in `/a0/agents/<agent_name>/prompts/` rather than a shared `/prompts` folder. See the [Extensions guide](../developer/extensions.md#prompts) for details.
 
 > [!NOTE]
-> The Hacker profile is included in the main image. After launch, choose the **hacker** agent profile in Settings if you want the security-focused prompts and tooling. The "hacker" branch is deprecated.
+> The Hacker profile is included in the main image. After launch, choose the **hacker** agent profile in Settings to make it the default for new chats, or switch the selected chat from the composer profile selector. The "hacker" branch is deprecated.
 
 ![settings](../res/setup/settings/1-agentConfig.png)
 
@@ -400,7 +405,7 @@ The Settings page is the control center for selecting the Large Language Models 
 
 | LLM Role | Description |
 | --- | --- |
-| `chat_llm` | This is the primary LLM used for conversations, agent reasoning, tool use, and the built-in browser agent. Vision support controls browser vision and image understanding. |
+| `chat_llm` | This is the primary LLM used for conversations, agent reasoning, and tool use. Vision support controls image understanding. |
 | `utility_llm` | This LLM handles internal tasks like summarizing messages, managing memory, and processing internal prompts. Using a smaller, less expensive model here can improve efficiency. |
 | `embedding_llm` | The embedding model shipped with A0 runs on CPU and is responsible for generating embeddings used for memory retrieval and knowledge base lookups. Changing the `embedding_llm` will re-index all of A0's memory. |
 
@@ -411,7 +416,7 @@ The Settings page is the control center for selecting the Large Language Models 
 3. Click "Save" to apply the changes.
 
 > [!NOTE]
-> The Browser Agent does not have a separate model slot. It uses the effective Main Model resolved by `_model_config`, including per-chat overrides and the Main Model vision flag.
+> The built-in browser does not have a separate model slot. The main agent decides when to call the direct `browser` tool.
 
 ### Important Considerations
 
