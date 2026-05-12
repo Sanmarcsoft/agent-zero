@@ -1,0 +1,185 @@
+# Code Execution Safety Patterns — 2026-05-12
+#
+# Loaded by plugins/_code_execution/helpers/safety.py at every CodeExecution
+# call. Enforces the video framework's "delete the bash tool" principle on
+# the still-vulnerable agent-zero chat UI surface — not by deletion, but by
+# deterministic deny-by-pattern before any runtime executes.
+#
+# Three tiers:
+#   blocked   — hard deny, no override available to the LLM
+#   ask       — would normally prompt; in agent-zero's autonomous chat loop
+#               we have no synchronous human-in-the-loop hook, so DEGRADE
+#               TO BLOCK (operator can disable a pattern in source if a real
+#               use case proves it overzealous)
+#   zero_access_paths — substring match on the entire code body. If any of
+#               these appears, the call is denied regardless of intent.
+#
+# Pattern syntax: Python re.MULTILINE, case-sensitive by default unless the
+# pattern uses an inline (?i) flag.
+#
+# Runtime-specific patterns are evaluated AFTER the shared baseline. A bash
+# command goes through bash + terminal patterns; python code goes through
+# python patterns; nodejs through nodejs.
+
+version: "1.0"
+last_updated: 2026-05-12
+philosophy:
+  mode: deny-by-pattern
+  principle: >
+    The agent-zero chat UI exposes code_execution to autonomous agent loops.
+    Even with a human-in-the-loop chat layer, the agent itself runs many
+    tool calls per turn and may misjudge under context overflow. This filter
+    is the deterministic floor that catches catastrophic intent BEFORE the
+    PTY spawns.
+
+# --- Shared baseline (applies to all runtimes) ------------------------------
+
+shared:
+  blocked:
+    # Filesystem destruction
+    - pattern: \brm\s+-[a-z]*r[a-z]*\s+/(\s|$)
+      reason: rm -rf / (system wipe)
+    - pattern: \brm\s+-[a-z]*r[a-z]*\s+~(/\s|$|/?\s*[;&|])
+      reason: rm -rf ~ (home wipe)
+    - pattern: \brm\s+-[a-z]*r[a-z]*\s+\$HOME
+      reason: rm -rf $HOME
+    - pattern: \bdd\s+.*\bof=/dev/(sd|nvme|disk|hd|vd|xvd)
+      reason: dd to a block device
+    - pattern: \bmkfs[.\s]
+      reason: filesystem reformat
+    - pattern: '>\s*/dev/(sd|nvme|disk|hd|vd|xvd)[a-z]'
+      reason: write to block device
+    # Cloud destruction
+    - pattern: \baws\s+s3\s+rb\s+
+      reason: AWS S3 bucket remove
+    - pattern: \baws\s+(ec2|rds|eks)\s+delete-
+      reason: AWS resource delete
+    - pattern: \bgcloud\s+.*\s+delete\b
+      reason: GCP resource delete
+    - pattern: \bterraform\s+destroy\b
+      reason: terraform destroy
+    - pattern: \bdocker\s+(volume\s+)?rm\s+--force\b
+      reason: docker force-remove
+    - pattern: \bkubectl\s+delete\b
+      reason: Kubernetes resource delete
+    # Database
+    - pattern: (?i)\bdrop\s+(table|database|schema)\b
+      reason: SQL DDL drop
+    - pattern: (?i)\btruncate\s+table\b
+      reason: SQL truncate
+    - pattern: \bredis-cli\s+.*\bflushall\b
+      reason: redis FLUSHALL
+    # Network-to-shell
+    - pattern: curl\s+[^|]*\|\s*(bash|sh|zsh|fish)\b
+      reason: pipe-to-shell from curl
+    - pattern: wget\s+[^|]*\|\s*(bash|sh|zsh|fish)\b
+      reason: pipe-to-shell from wget
+    - pattern: \bfetch\s+[^|]*\|\s*(bash|sh|zsh)\b
+      reason: pipe-to-shell from fetch
+    # Eval / shell escapes
+    - pattern: \beval\s+["'`$]\(
+      reason: shell eval of dynamic content
+    # Fork bomb
+    - pattern: ':\s*\(\s*\)\s*\{[^}]*\|\s*&\s*\}'
+      reason: fork bomb
+    # Git destructive
+    - pattern: \bgit\s+push\s+.*--force\s+.*\b(main|master|production|prod)\b
+      reason: force-push to a protected branch
+    - pattern: \bgit\s+reset\s+.*--hard\s+(HEAD|origin)
+      reason: git hard reset (silent loss of uncommitted)
+
+  zero_access_paths:
+    - /root/.ssh
+    - /home/matt/.ssh
+    - "/.ssh/id_"
+    - .gnupg
+    - /root/.config/gmail-gtd/token
+    - /a0/usr/.env
+    - /etc/shadow
+    - /etc/sudoers
+    - /etc/ssl/private
+
+# --- Bash / terminal runtime --------------------------------------------------
+
+terminal:
+  blocked:
+    # Anything in shared blocked applies. Extras specific to terminal/bash:
+    - pattern: \bnohup\s+.*&\s*disown
+      reason: detached background process (escapes audit)
+    - pattern: \bsystemctl\s+(stop|disable)\s+.*\b(ssh|sshd)
+      reason: disabling sshd would lock out operator
+    - pattern: ;\s*history\s+-c
+      reason: clearing shell history (audit evasion)
+
+  ask:
+    # In a non-interactive autonomous loop we have no prompt, so these
+    # degrade to block. Move to allow-list per task if a real workflow needs
+    # them.
+    - pattern: \bsystemctl\s+(restart|reload|stop)\b
+      reason: systemctl mutation
+    - pattern: \bcrontab\s+-r
+      reason: crontab remove
+    - pattern: \bsudo\s+
+      reason: privilege escalation
+
+# --- Python runtime ---------------------------------------------------------
+
+python:
+  blocked:
+    # Shell-shaped escapes
+    - pattern: \bos\.system\s*\(
+      reason: os.system shell out
+    - pattern: \bsubprocess\.(call|run|Popen|check_output|check_call)\s*\([^)]*shell\s*=\s*True
+      reason: subprocess with shell=True (shell injection vector)
+    - pattern: \bos\.popen\s*\(
+      reason: os.popen shell out
+    - pattern: '\b__import__\s*\(\s*["\047]os["\047]\s*\)\.system'
+      reason: dynamic import of os.system
+    # Eval / exec
+    - pattern: '\beval\s*\([^)]'
+      reason: Python eval()
+    - pattern: '\bexec\s*\([^)]'
+      reason: Python exec()
+    - pattern: \bcompile\s*\(.*\bexec
+      reason: compile()-then-exec pattern
+    # Process replacement
+    - pattern: \bos\.exec[lvep]+\s*\(
+      reason: os.exec* replaces the running process
+    # Direct file destruction
+    - pattern: \bshutil\.rmtree\s*\(\s*["\047]/(\s|["\047])
+      reason: shutil.rmtree on a top-level path
+    - pattern: \bshutil\.rmtree\s*\(\s*os\.path\.expanduser
+      reason: shutil.rmtree on expanded user path
+    # ctypes / lowlevel
+    - pattern: \bctypes\.CDLL\s*\(\s*["\047](/lib/libc|libc\.so)
+      reason: direct libc binding (syscalls bypass safety)
+
+  ask:
+    - pattern: \brequests\.delete\s*\(
+      reason: HTTP DELETE — usually mutation
+    - pattern: \bopen\s*\([^)]*["\047]w[+b]?["\047]
+      reason: file write open (operator should know which file)
+
+# --- Node.js runtime --------------------------------------------------------
+
+nodejs:
+  blocked:
+    - pattern: \brequire\s*\(\s*["\047]child_process["\047]\s*\)\.(exec|execSync|spawn|fork)
+      reason: child_process exec/spawn (shell out)
+    - pattern: \bchild_process\.(exec|execSync|spawn|fork)\s*\(
+      reason: child_process exec/spawn (shell out)
+    - pattern: '\beval\s*\([^)]'
+      reason: JS eval()
+    - pattern: \bnew\s+Function\s*\(
+      reason: Function constructor (eval-shaped)
+    - pattern: \bvm\.runIn(NewContext|ThisContext|Context)\s*\(
+      reason: vm module sandbox execution
+    - pattern: \brequire\s*\(\s*["\047]fs["\047]\s*\)\.rm
+      reason: fs.rm/rmSync
+    - pattern: \bfs\.(rm|rmSync|unlink|unlinkSync)\s*\(
+
+  ask:
+    - pattern: \brequire\s*\(\s*["\047]fs["\047]\s*\)\.write
+      reason: fs write (operator should know which file)
+    - pattern: \bfetch\s*\([^)]*\bDELETE
+      reason: HTTP DELETE via fetch

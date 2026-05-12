@@ -53,6 +53,33 @@ class CodeExecution(Tool):
 
         cfg = _get_config(self.agent)
 
+        # ─── Round 4 safety filter (2026-05-12) ────────────────────────────
+        # Deterministic deny-by-pattern BEFORE any PTY spawns. Source:
+        # plugins/_code_execution/safety_patterns.yaml. Audit-writes to
+        # ChromaDB collection agent_${slug}_memory. See
+        # plugins/_code_execution/helpers/safety.py for the classifier.
+        _code_body = self.args.get("code") or self.args.get("command") or ""
+        _verdict = _safety_classify(runtime_arg, _code_body)
+        _safety_audit(_verdict, runtime_arg, _code_body)
+        if _verdict.is_block():
+            PrintStyle(font_color="#ff4040", padding=False).print(
+                f"[safety] BLOCKED code_execution ({runtime_arg}): {_verdict.reason}"
+            )
+            return Response(
+                message=(
+                    "code_execution refused by deterministic safety filter.\n"
+                    f"runtime: {runtime_arg}\n"
+                    f"reason: {_verdict.reason}\n"
+                    f"tier: {_verdict.tier}\n"
+                    f"matched_pattern: {_verdict.matched_pattern}\n\n"
+                    "If this is a genuine false positive, edit "
+                    "plugins/_code_execution/safety_patterns.yaml and reload. "
+                    "Do not attempt to bypass via inline code mutation — "
+                    "additional pattern coverage will catch it."
+                ),
+                break_loop=False,
+            )
+
         if runtime_arg == "python":
             response = await self.execute_python_code(
                 cfg, code=self.args["code"], session=session, reset=reset
